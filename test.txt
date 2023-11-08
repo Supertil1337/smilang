@@ -1,0 +1,7 @@
+var hallo = 1
+var hallo2 = hallo + 2
+print(hallo2)
+
+
+VarAssignNode(hallo, 1)
+VarAssignNode(hallo2, BinOpNode(VarAccessNode(hallo), 2))
