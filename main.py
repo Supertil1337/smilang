@@ -58,7 +58,7 @@ class VarAccessNode:
         self.name = name
 
     def __repr__(self):
-        return f"{self.name}: {self.value}"
+        return f"Access: {self.name}"
 
 
 class VarAssignNode:
@@ -69,21 +69,21 @@ class VarAssignNode:
     def __repr__(self):
         return f"{self.name}: {self.value}"
 
+
 class PrintNode:
-    def __init__(self, message):
-        self.message = message
+    def __init__(self, child_node):
+        self.child_node = child_node
 
     def __repr__(self):
-        return f"print({self.message})"
+        return f"print({self.child_node})"
 
-def error(message):
-    print(f"\033[91mERROR\n{message} \033[0m")
+
+def error(message, code_snippet=None):
+    if not code_snippet:
+        print(f"\033[91mERROR\n{message} \033[0m")
+    else:
+        print(f"\033[91mERROR\n{message}\nYour code: {code_snippet} \033[0m")
     exit()
-
-
-#Maybe Context Class?
-
-variables = {}
 
 
 #############################
@@ -92,16 +92,17 @@ variables = {}
 
 # print("\033[91m test \033[0m")
 
-#code = input("Emocode: ")
+# code = input("Emocode: ")
 file = open("program.txt", "r")
 code = file.readlines()
-print(code)
 tokens = []
 
 for tokens_raw in code:
     tokens_raw = tokens_raw.split(" ")
-
     for i in range(len(tokens_raw)):
+        tokens_raw[i] = tokens_raw[i].strip()
+    for i in range(len(tokens_raw)):
+
         if len(tokens_raw) == 0:
             break
         if tokens_raw[0] == ":-)":
@@ -113,18 +114,17 @@ for tokens_raw in code:
         elif tokens_raw[0] == ":-/":
             tokens.append(Token("OP", "DIV"))
         elif tokens_raw[0] == "var":
-            tokens.append(Token("ASS", tokens_raw[1]))  # (DEC = Declaration) jetzt nich mehr, war vorher type     ASS für Variable Assign   im moment nur integers
+            tokens.append(Token("ASS", tokens_raw[
+                1]))  # (DEC = Declaration) jetzt nich mehr, war vorher type     ASS für Variable Assign   im moment nur integers
             if len(tokens_raw) < 4 or tokens_raw[2] != "=":
                 # raise Exception("A variable cannot be declared without having a value assigned to it")
-                error(f"Your code: {tokens_raw[0]} {tokens_raw[1]}\nA variable cannot be declared without having a value assigned to it")
+                error("A variable cannot be declared without having a value assigned to it",
+                      f"{tokens_raw[0]} {tokens_raw[1]}")
 
             tokens_raw.remove(tokens_raw[1])
             tokens_raw.remove(tokens_raw[1])
         elif tokens_raw[0] == "print":
-            if tokens_raw[1] == ":)" or tokens_raw[1] == ":(":
-                tokens.append(Token("FUNC", "PRINT"))
-            else:
-                error(f"Your code: {tokens_raw[0]} {tokens_raw[1]}\nA print statement must be followed by a number!")
+            tokens.append(Token("FUNC", "PRINT"))
         elif tokens_raw[0] == ":)" or tokens_raw[0] == ":(":
             binaryNumbers = [tokens_raw[0]]
 
@@ -139,7 +139,6 @@ for tokens_raw in code:
 
 
             collect_binary_values()
-
             # Calculate final number from binary values
             finalNumber = 0
             counter = 1
@@ -173,7 +172,7 @@ for tokens_raw in code:
             tokens.append(Token("NUM", finalNumber))
 
         else:
-            tokens.append(Token("ACC", tokens_raw[0])) # ACC für Variable Access
+            tokens.append(Token("ACC", tokens_raw[0]))  # ACC für Variable Access
         tokens_raw.remove(tokens_raw[0])
 
     tokens.append(Token("BREAK", "BREAK"))
@@ -188,8 +187,9 @@ print(tokens)
 tok_index = 0
 
 
-
 def get_value(start, end):
+    # print(start, end)
+    # print(tokens[start:end+1])
     if start == end:
         if tokens[start].type == "NUM":
             return NumberNode(tokens[start].value)
@@ -202,7 +202,7 @@ def get_value(start, end):
 
     def find_op(operators):
         global tok_index
-        print(tok_index, end)
+        # print(tok_index, end)
         if tok_index == end:
             return None
         if tokens[tok_index].type == "OP" and tokens[tok_index].value in operators:
@@ -216,19 +216,20 @@ def get_value(start, end):
         tok_index = start
         op_index = find_op(("MUL", "DIV"))
 
-    print(tokens[start:end])
-
     left_node = get_value(start, op_index - 1)
     right_node = get_value(op_index + 1, end)
     return BinOpNode(tokens[op_index], left_node, right_node)
 
+
+start_nodes = []
+
+
 def create_nodes(start, end):
     global tok_index
-    nodes = []
 
     def find_line_break(start_):
         if tokens[start_].type == "BREAK":
-            return start_
+            return start_ - 1
         else:
             return find_line_break(start_ + 1)
 
@@ -236,33 +237,36 @@ def create_nodes(start, end):
     if tokens[start].type == "FUNC":
         if tokens[start].value == "PRINT":
             break_ = find_line_break(start)
-            nodes.append(PrintNode(str(get_value(start + 1, break_))))
-    if tokens[start].type == "ASS":
+            start_nodes.append(PrintNode(get_value(start + 1, break_)))
+    elif tokens[start].type == "ASS":
         break_ = find_line_break(start)
-        nodes.append(VarAssignNode(tokens[start].value, get_value(start + 1, break_)))
+        start_nodes.append(VarAssignNode(tokens[start].value, get_value(start + 1, break_)))
 
     elif start == 0:
-        error(f"Your code: {tokens[start]}\nAn expression must contain a function call or an assignment")
+        error("An expression must contain a function call or an assignment", f"{tokens[start]}")
 
     if break_ != end:
-        nodes.append(create_nodes(break_ + 1, end))
-    return nodes
+        # print(tokens)
+        create_nodes(break_ + 1, end)
 
 
-
-
-
-start_nodes = create_nodes(0, len(tokens) - 1)
+create_nodes(0, len(tokens) - 1)
 print(start_nodes)
-
 
 #####################################
 #          INTERPRETER
 #####################################
 
 
+# Maybe Context Class?
+
+variables = {}
+
+
 def traverse_ast(node):
-    if type(node).__name__ == "BinOpNode":
+    type_ = type(node).__name__
+
+    if type_ == "BinOpNode":
         left_value = traverse_ast(node.left_node)
         right_value = traverse_ast(node.right_node)
         op = node.token.value
@@ -276,15 +280,29 @@ def traverse_ast(node):
             return left_value / right_value
 
     # Brauch ich das eigentlich??
-    elif type(node).__name__ == "NumberNode":
+    elif type_ == "NumberNode":
         return node.value
 
-    elif type(node).__name__ == "UnaryOpNode":
+    elif type_ == "UnaryOpNode":
         number = node.node.value
         if node.value == "MINUS":
             number *= -1
 
         return number
 
+    elif type_ == "VarAssignNode":
+        variables[node.name] = traverse_ast(node.value)
+        # print(f"Assigned {node.value} to {node.name}")
+        return None
 
-print(traverse_ast(start_node))
+    elif type_ == "VarAccessNode":
+        if not variables.get(node.name):
+            error("Unknown Error, did you spell something wrong?")
+        return variables[node.name]
+
+    elif type_ == "PrintNode":
+        print(traverse_ast(node.child_node))
+
+
+for node in start_nodes:
+    traverse_ast(node)
