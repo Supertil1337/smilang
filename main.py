@@ -78,6 +78,15 @@ class PrintNode:
         return f"print({self.child_node})"
 
 
+class LoopNode:
+    def __init__(self, child_nodes, iterations):
+        self.child_nodes = child_nodes
+        self.iterations = iterations
+
+    def __repr__(self):
+        return f"Loop({self.iterations})({self.child_nodes})"
+
+
 def error(message, code_snippet=None):
     if not code_snippet:
         print(f"\033[91mERROR\n{message} \033[0m")
@@ -125,6 +134,10 @@ for tokens_raw in code:
             tokens_raw.remove(tokens_raw[1])
         elif tokens_raw[0] == "print":
             tokens.append(Token("FUNC", "PRINT"))
+        elif tokens_raw[0] == "LOOP":
+            tokens.append(Token("LOOP", "START"))
+        elif tokens_raw[0] == "END":
+            tokens.append(Token("END", "END"))
         elif tokens_raw[0] == ":)" or tokens_raw[0] == ":(":
             binaryNumbers = [tokens_raw[0]]
 
@@ -172,7 +185,13 @@ for tokens_raw in code:
             tokens.append(Token("NUM", finalNumber))
 
         else:
-            tokens.append(Token("ACC", tokens_raw[0]))  # ACC für Variable Access
+            tokens.append(Token("ASS", tokens_raw[0]))
+            if len(tokens_raw) > 3 or tokens_raw[1] == "=":
+                # raise Exception("A variable cannot be declared without having a value assigned to it")
+                error("A variable cannot be declared without having a value assigned to it",
+                        f"{tokens_raw[0]} {tokens_raw[1]}")
+            else:
+                tokens.append(Token("ACC", tokens_raw[0]))  # ACC für Variable Access
         tokens_raw.remove(tokens_raw[0])
 
     tokens.append(Token("BREAK", "BREAK"))
@@ -212,45 +231,62 @@ def get_value(start, end):
 
     op_index = find_op(("PLUS", "MINUS"))
     # print(op_index)
-    if op_index is None:
+    if not op_index:
         tok_index = start
         op_index = find_op(("MUL", "DIV"))
+
+    if not op_index:
+        error("No value could be parsed!", tokens[start:end])
 
     left_node = get_value(start, op_index - 1)
     right_node = get_value(op_index + 1, end)
     return BinOpNode(tokens[op_index], left_node, right_node)
 
 
-start_nodes = []
+def return_nodes(start_, end_):
 
+    nodes = []
 
-def create_nodes(start, end):
-    global tok_index
+    def create_nodes(start, end):
+        global tok_index
 
-    def find_line_break(start_):
-        if tokens[start_].type == "BREAK":
-            return start_ - 1
-        else:
-            return find_line_break(start_ + 1)
+        def find_line_break(_start):
+            if tokens[_start].type == "BREAK":
+                return _start - 1
+            else:
+                return find_line_break(_start + 1)
 
-    break_ = start
-    if tokens[start].type == "FUNC":
-        if tokens[start].value == "PRINT":
+        break_ = start
+        if tokens[start].type == "FUNC":
+            if tokens[start].value == "PRINT":
+                break_ = find_line_break(start)
+                nodes.append(PrintNode(get_value(start + 1, break_)))
+        elif tokens[start].type == "ASS":
             break_ = find_line_break(start)
-            start_nodes.append(PrintNode(get_value(start + 1, break_)))
-    elif tokens[start].type == "ASS":
-        break_ = find_line_break(start)
-        start_nodes.append(VarAssignNode(tokens[start].value, get_value(start + 1, break_)))
+            nodes.append(VarAssignNode(tokens[start].value, get_value(start + 1, break_)))
+        elif tokens[start].type == "LOOP":
+            break_ = find_line_break(start)
+            end_key = None
+            for tok in tokens:
+                if tok.type == "END":
+                    end_key = tokens.index(tok)
+            if not end_key:
+                error("No END keyword was found for a loop!")
+            nodes.append(LoopNode(return_nodes(break_ + 1, end_key - 1), get_value(start + 1, break_)))
+            break_ = end_key
 
-    elif start == 0:
-        error("An expression must contain a function call or an assignment", f"{tokens[start]}")
+        elif start == 0:
+            error("An expression must contain a function call or an assignment", f"{tokens[start]}")
 
-    if break_ != end:
-        # print(tokens)
-        create_nodes(break_ + 1, end)
+        if break_ != end:
+            # print(tokens)
+            create_nodes(break_ + 1, end)
+
+    create_nodes(start_, end_)
+    return nodes
 
 
-create_nodes(0, len(tokens) - 1)
+start_nodes = return_nodes(0, len(tokens) - 1)
 print(start_nodes)
 
 #####################################
@@ -265,7 +301,6 @@ variables = {}
 
 def traverse_ast(node):
     type_ = type(node).__name__
-
     if type_ == "BinOpNode":
         left_value = traverse_ast(node.left_node)
         right_value = traverse_ast(node.right_node)
@@ -302,6 +337,11 @@ def traverse_ast(node):
 
     elif type_ == "PrintNode":
         print(traverse_ast(node.child_node))
+
+    elif type_ == "LoopNode":
+        for _ in range(traverse_ast(node.iterations)):
+            for node_ in node.child_nodes:
+                traverse_ast(node_)
 
 
 for node in start_nodes:

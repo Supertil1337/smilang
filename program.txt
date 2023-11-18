@@ -1,4 +1,7 @@
 var hi = :( :( :)
 var hallo = :( :)
-print hi :-) :) :)
-
+print hi :-) :) :) :) :) :)
+LOOP :( :) :( :) :(
+print hallo
+hallo = hallo :-) :( :)
+END
