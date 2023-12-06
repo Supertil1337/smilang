@@ -185,11 +185,13 @@ for tokens_raw in code:
             tokens.append(Token("NUM", finalNumber))
 
         else:
-            tokens.append(Token("ASS", tokens_raw[0]))
-            if len(tokens_raw) > 3 or tokens_raw[1] == "=":
+
+            if len(tokens_raw) > 2 and tokens_raw[1] == "=":
                 # raise Exception("A variable cannot be declared without having a value assigned to it")
-                error("A variable cannot be declared without having a value assigned to it",
-                        f"{tokens_raw[0]} {tokens_raw[1]}")
+                tokens.append(Token("ASS", tokens_raw[0]))
+                # error("A variable cannot be declared without having a value assigned to it",
+                #        f"{tokens_raw[0]} {tokens_raw[1]}")
+                tokens_raw.remove(tokens_raw[1])
             else:
                 tokens.append(Token("ACC", tokens_raw[0]))  # ACC für Variable Access
         tokens_raw.remove(tokens_raw[0])
@@ -229,6 +231,7 @@ def get_value(start, end):
         tok_index += 1
         return find_op(operators)
 
+    print(tokens[start:end])
     op_index = find_op(("PLUS", "MINUS"))
     # print(op_index)
     if not op_index:
