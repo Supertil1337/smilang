@@ -1,3 +1,8 @@
+import sys
+# REMOVE LATER
+sys.setrecursionlimit(50)
+
+
 class Token:
     def __init__(self, type_, value):
         self.type = type_
@@ -86,6 +91,12 @@ class LoopNode:
     def __repr__(self):
         return f"Loop({self.iterations})({self.child_nodes})"
 
+class IfNode:
+    def __init__(self, condition):
+
+# maybe add to token for better errors?
+# class Position:
+
 
 def error(message, code_snippet=None):
     if not code_snippet:
@@ -114,6 +125,9 @@ for tokens_raw in code:
 
         if len(tokens_raw) == 0:
             break
+        if not tokens_raw[0]:
+            tokens_raw.remove(tokens_raw[0])
+            continue
         if tokens_raw[0] == ":-)":
             tokens.append(Token("OP", "PLUS"))
         elif tokens_raw[0] == ":-(":
@@ -123,19 +137,24 @@ for tokens_raw in code:
         elif tokens_raw[0] == ":-/":
             tokens.append(Token("OP", "DIV"))
         elif tokens_raw[0] == "var":
-            tokens.append(Token("ASS", tokens_raw[
-                1]))  # (DEC = Declaration) jetzt nich mehr, war vorher type     ASS für Variable Assign   im moment nur integers
-            if len(tokens_raw) < 4 or tokens_raw[2] != "=":
-                # raise Exception("A variable cannot be declared without having a value assigned to it")
-                error("A variable cannot be declared without having a value assigned to it",
-                      f"{tokens_raw[0]} {tokens_raw[1]}")
+            # tokens.append(Token("ASS", tokens_raw[
+            #   1]))  # (DEC = Declaration) jetzt nich mehr, war vorher type     ASS für Variable Assign   im moment nur integers
+            # if len(tokens_raw) < 4 or tokens_raw[2] != "=":
+            # raise Exception("A variable cannot be declared without having a value assigned to it")
+            #    error("A variable cannot be declared without having a value assigned to it",
+            #          f"{tokens_raw[0]} {tokens_raw[1]}")
 
-            tokens_raw.remove(tokens_raw[1])
-            tokens_raw.remove(tokens_raw[1])
+            # tokens_raw.remove(tokens_raw[1])
+            # tokens_raw.remove(tokens_raw[1])
+            tokens.append(Token("VAR", "VAR"))
+        elif tokens_raw[0] == "=":
+            tokens.append(Token("EQU", "EQU"))
         elif tokens_raw[0] == "print":
             tokens.append(Token("FUNC", "PRINT"))
         elif tokens_raw[0] == "LOOP":
             tokens.append(Token("LOOP", "START"))
+        elif tokens_raw[0] == "IF":
+            tokens.append(Token("IF", "START"))
         elif tokens_raw[0] == "END":
             tokens.append(Token("END", "END"))
         elif tokens_raw[0] == ":)" or tokens_raw[0] == ":(":
@@ -186,14 +205,16 @@ for tokens_raw in code:
 
         else:
 
-            if len(tokens_raw) > 2 and tokens_raw[1] == "=":
-                # raise Exception("A variable cannot be declared without having a value assigned to it")
-                tokens.append(Token("ASS", tokens_raw[0]))
-                # error("A variable cannot be declared without having a value assigned to it",
-                #        f"{tokens_raw[0]} {tokens_raw[1]}")
-                tokens_raw.remove(tokens_raw[1])
-            else:
-                tokens.append(Token("ACC", tokens_raw[0]))  # ACC für Variable Access
+            # if len(tokens_raw) > 2 and tokens_raw[1] == "=":
+            # raise Exception("A variable cannot be declared without having a value assigned to it")
+            #    tokens.append(Token("ASS", tokens_raw[0]))
+            # error("A variable cannot be declared without having a value assigned to it",
+            #        f"{tokens_raw[0]} {tokens_raw[1]}")
+            # tokens_raw.remove(tokens_raw[1])
+            # else:
+            #    tokens.append(Token("ACC", tokens_raw[0]))  # ACC für Variable Access
+            tokens.append(Token("IDE", tokens_raw[0]))
+
         tokens_raw.remove(tokens_raw[0])
 
     tokens.append(Token("BREAK", "BREAK"))
@@ -209,12 +230,13 @@ tok_index = 0
 
 
 def get_value(start, end):
+    global tok_index
     # print(start, end)
     # print(tokens[start:end+1])
     if start == end:
         if tokens[start].type == "NUM":
             return NumberNode(tokens[start].value)
-        elif tokens[start].type == "ACC":
+        elif tokens[start].type == "IDE":
             return VarAccessNode(tokens[start].value)
     elif (end - start) == 1 and tokens[start].type == "SIGN":
         return UnaryOpNode(tokens[start].value, NumberNode(tokens[end].value))
@@ -227,11 +249,11 @@ def get_value(start, end):
         if tok_index == end:
             return None
         if tokens[tok_index].type == "OP" and tokens[tok_index].value in operators:
+
             return tok_index
         tok_index += 1
         return find_op(operators)
 
-    print(tokens[start:end])
     op_index = find_op(("PLUS", "MINUS"))
     # print(op_index)
     if not op_index:
@@ -247,7 +269,6 @@ def get_value(start, end):
 
 
 def return_nodes(start_, end_):
-
     nodes = []
 
     def create_nodes(start, end):
@@ -264,9 +285,16 @@ def return_nodes(start_, end_):
             if tokens[start].value == "PRINT":
                 break_ = find_line_break(start)
                 nodes.append(PrintNode(get_value(start + 1, break_)))
-        elif tokens[start].type == "ASS":
+        elif tokens[start].type == "VAR":
+            if tokens[start + 1].type != "IDE" or tokens[start + 2].type != "EQU":
+                error("You didn't declare a variable correctly", tokens[start:(start + 2)])
             break_ = find_line_break(start)
-            nodes.append(VarAssignNode(tokens[start].value, get_value(start + 1, break_)))
+            nodes.append(VarAssignNode(tokens[start + 1].value, get_value(start + 3, break_)))
+        elif tokens[start].type == "IDE":
+            if tokens[start + 1].type != "EQU":
+                error("Unknown Error", tokens[start:start+1])
+            break_ = find_line_break(start)
+            nodes.append(VarAssignNode(tokens[start].value, get_value(start + 2, break_)))
         elif tokens[start].type == "LOOP":
             break_ = find_line_break(start)
             end_key = None
@@ -276,6 +304,20 @@ def return_nodes(start_, end_):
             if not end_key:
                 error("No END keyword was found for a loop!")
             nodes.append(LoopNode(return_nodes(break_ + 1, end_key - 1), get_value(start + 1, break_)))
+            break_ = end_key
+
+        elif tokens[start].type == "IF":
+
+            # Get Boolean value that determines whether the code in the body is executed or not
+
+            break_ = find_line_break(start)
+            end_key = None
+            for tok in tokens:
+                if tok.type == "END":
+                    end_key = tokens.index(tok)
+            if not end_key:
+                error("No END keyword was found for an if statement!")
+            nodes.append()
             break_ = end_key
 
         elif start == 0:
