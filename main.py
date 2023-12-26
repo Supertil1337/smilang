@@ -92,8 +92,24 @@ class LoopNode:
         return f"Loop({self.iterations})({self.child_nodes})"
 
 class IfNode:
-    def __init__(self, condition):
+    def __init__(self, condition, child_nodes):
+        self.condition = condition
+        self.child_nodes = child_nodes
+        
+    def __repr__(self):
+        return f"If({self.condition})Then({self.child_nodes})"
 
+# Comparison(Boolean)    
+class ComNode:
+    def __init__(self, equality_operator, left_node, right_node):
+        self.equality_operator = equality_operator
+        self.left_node = left_node
+        self.right_node = right_node
+        
+    def __repr__(self):
+        return f"{self.left_node} {self.equality_operator} {self.right_node}"
+        
+        
 # maybe add to token for better errors?
 # class Position:
 
@@ -113,7 +129,7 @@ def error(message, code_snippet=None):
 # print("\033[91m test \033[0m")
 
 # code = input("Emocode: ")
-file = open("program.txt", "r")
+file = open("program 2.txt", "r")
 code = file.readlines()
 tokens = []
 
@@ -136,6 +152,12 @@ for tokens_raw in code:
             tokens.append(Token("OP", "MUL"))
         elif tokens_raw[0] == ":-/":
             tokens.append(Token("OP", "DIV"))
+        elif tokens_raw[0] == "<":
+            tokens.append(Token("COM", "SMA"))
+        elif tokens_raw[0] == ">":
+            tokens.append(Token("COM", "BIG"))
+        elif tokens_raw[0] == "==":
+            tokens.append(Token("COM", "EQU"))
         elif tokens_raw[0] == "var":
             # tokens.append(Token("ASS", tokens_raw[
             #   1]))  # (DEC = Declaration) jetzt nich mehr, war vorher type     ASS für Variable Assign   im moment nur integers
@@ -243,29 +265,37 @@ def get_value(start, end):
 
     tok_index = start
 
-    def find_op(operators):
+    def find_op(type, operators):
         global tok_index
         # print(tok_index, end)
         if tok_index == end:
             return None
-        if tokens[tok_index].type == "OP" and tokens[tok_index].value in operators:
+        if tokens[tok_index].type == type and tokens[tok_index].value in operators:
 
             return tok_index
         tok_index += 1
-        return find_op(operators)
+        return find_op(type, operators)
 
-    op_index = find_op(("PLUS", "MINUS"))
+    op_index = find_op("OP", ("PLUS", "MINUS"))
     # print(op_index)
     if not op_index:
         tok_index = start
-        op_index = find_op(("MUL", "DIV"))
+        op_index = find_op("OP", ("MUL", "DIV"))
 
     if not op_index:
-        error("No value could be parsed!", tokens[start:end])
+        tok_index = start
+        com_index = find_op("COM", ("EQU", "SMA", "BIG"))
+        if not com_index:
+            error("No value could be parsed!", tokens[start:end+1])
+            
+        left_node = get_value(start, com_index - 1)
+        right_node = get_value(com_index + 1, end)
+        return ComNode(tokens[com_index].value, left_node, right_node)
 
     left_node = get_value(start, op_index - 1)
     right_node = get_value(op_index + 1, end)
     return BinOpNode(tokens[op_index], left_node, right_node)
+    
 
 
 def return_nodes(start_, end_):
@@ -307,9 +337,6 @@ def return_nodes(start_, end_):
             break_ = end_key
 
         elif tokens[start].type == "IF":
-
-            # Get Boolean value that determines whether the code in the body is executed or not
-
             break_ = find_line_break(start)
             end_key = None
             for tok in tokens:
@@ -317,7 +344,7 @@ def return_nodes(start_, end_):
                     end_key = tokens.index(tok)
             if not end_key:
                 error("No END keyword was found for an if statement!")
-            nodes.append()
+            nodes.append(IfNode(get_value(start + 1, break_), return_nodes(break_ + 1, end_key - 1)))
             break_ = end_key
 
         elif start == 0:
@@ -385,6 +412,21 @@ def traverse_ast(node):
 
     elif type_ == "LoopNode":
         for _ in range(traverse_ast(node.iterations)):
+            for node_ in node.child_nodes:
+                traverse_ast(node_)
+                
+    elif type_ == "IfNode":
+        op = node.condition.equality_operator
+        condition = False
+        left_node = node.condition.left_node
+        right_node = node.condition.right_node
+        if op == "SMA":
+            condition = traverse_ast(left_node) < traverse_ast(right_node)
+        elif op == "BIG":
+            condition = traverse_ast(left_node) > traverse_ast(right_node)
+        elif op == "EQU":
+            condition = traverse_ast(left_node) == traverse_ast(right_node)
+        if condition:
             for node_ in node.child_nodes:
                 traverse_ast(node_)
 
