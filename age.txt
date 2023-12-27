@@ -1,0 +1,4 @@
+var alter = :( :) :) :) :)
+IF alter > :( :) :( :( :( :)
+print alter
+END

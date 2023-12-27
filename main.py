@@ -1,4 +1,5 @@
 import sys
+
 # REMOVE LATER
 sys.setrecursionlimit(50)
 
@@ -91,25 +92,27 @@ class LoopNode:
     def __repr__(self):
         return f"Loop({self.iterations})({self.child_nodes})"
 
+
 class IfNode:
     def __init__(self, condition, child_nodes):
         self.condition = condition
         self.child_nodes = child_nodes
-        
+
     def __repr__(self):
         return f"If({self.condition})Then({self.child_nodes})"
 
-# Comparison(Boolean)    
+
+# Comparison(Boolean)
 class ComNode:
     def __init__(self, equality_operator, left_node, right_node):
         self.equality_operator = equality_operator
         self.left_node = left_node
         self.right_node = right_node
-        
+
     def __repr__(self):
         return f"{self.left_node} {self.equality_operator} {self.right_node}"
-        
-        
+
+
 # maybe add to token for better errors?
 # class Position:
 
@@ -129,7 +132,7 @@ def error(message, code_snippet=None):
 # print("\033[91m test \033[0m")
 
 # code = input("Emocode: ")
-file = open("program 2.txt", "r")
+file = open("age.txt", "r")
 code = file.readlines()
 tokens = []
 
@@ -195,7 +198,7 @@ for tokens_raw in code:
             collect_binary_values()
             # Calculate final number from binary values
             finalNumber = 0
-            counter = 1
+            counter = 0
 
             sign = binaryNumbers[0]
             binaryNumbers.remove(binaryNumbers[0])
@@ -204,15 +207,15 @@ for tokens_raw in code:
             def calc_number():
                 global finalNumber
                 global counter
-                if len(binaryNumbers) - 1 < 0:
+                if len(binaryNumbers) == 0:
                     return
                 else:
                     if binaryNumbers[len(binaryNumbers) - 1] == ":)":
                         # 2 hoch counter - 1 wird zu final number addiert
                         # print(2 ** (counter - 1))
-                        finalNumber += 2 ** (counter - 1)
+                        finalNumber += 2 ** counter
                     counter += 1
-                    binaryNumbers.remove(binaryNumbers[len(binaryNumbers) - 1])
+                    del binaryNumbers[-1]
                     calc_number()
 
 
@@ -271,7 +274,6 @@ def get_value(start, end):
         if tok_index == end:
             return None
         if tokens[tok_index].type == type and tokens[tok_index].value in operators:
-
             return tok_index
         tok_index += 1
         return find_op(type, operators)
@@ -286,8 +288,8 @@ def get_value(start, end):
         tok_index = start
         com_index = find_op("COM", ("EQU", "SMA", "BIG"))
         if not com_index:
-            error("No value could be parsed!", tokens[start:end+1])
-            
+            error("No value could be parsed!", tokens[start:end + 1])
+
         left_node = get_value(start, com_index - 1)
         right_node = get_value(com_index + 1, end)
         return ComNode(tokens[com_index].value, left_node, right_node)
@@ -295,7 +297,6 @@ def get_value(start, end):
     left_node = get_value(start, op_index - 1)
     right_node = get_value(op_index + 1, end)
     return BinOpNode(tokens[op_index], left_node, right_node)
-    
 
 
 def return_nodes(start_, end_):
@@ -322,7 +323,7 @@ def return_nodes(start_, end_):
             nodes.append(VarAssignNode(tokens[start + 1].value, get_value(start + 3, break_)))
         elif tokens[start].type == "IDE":
             if tokens[start + 1].type != "EQU":
-                error("Unknown Error", tokens[start:start+1])
+                error("Unknown Error", tokens[start:start + 1])
             break_ = find_line_break(start)
             nodes.append(VarAssignNode(tokens[start].value, get_value(start + 2, break_)))
         elif tokens[start].type == "LOOP":
@@ -414,7 +415,7 @@ def traverse_ast(node):
         for _ in range(traverse_ast(node.iterations)):
             for node_ in node.child_nodes:
                 traverse_ast(node_)
-                
+
     elif type_ == "IfNode":
         op = node.condition.equality_operator
         condition = False
