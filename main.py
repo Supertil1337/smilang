@@ -145,16 +145,20 @@ line = 0
 
 for tokens_raw in code:
     tokens_raw = tokens_raw.split(" ")
+
     for i in range(len(tokens_raw)):
         tokens_raw[i] = tokens_raw[i].strip()
-    for i in range(len(tokens_raw)):
 
+    for i in range(len(tokens_raw)):
         if len(tokens_raw) == 0:
             break
+
         tok = tokens_raw[0]
+
         if not tok:
             del tokens_raw[0]
             continue
+
         if tok == ":-)":
             tokens.append(Token("OP", "PLUS", line))
         elif tok == ":-(":
@@ -184,7 +188,6 @@ for tokens_raw in code:
         elif tok == ":)" or tok == ":(":
             binaryNumbers = [tok]
 
-
             def collect_binary_values():
                 if len(tokens_raw) < 2:
                     return
@@ -193,9 +196,10 @@ for tokens_raw in code:
                     del tokens_raw[1]
                     collect_binary_values()
 
-
             collect_binary_values()
+
             # Calculate final number from binary values
+
             finalNumber = 0
             counter = 0
 
@@ -206,13 +210,13 @@ for tokens_raw in code:
             def calc_number():
                 global finalNumber
                 global counter
-                if len(binaryNumbers) == 0:
+
+                if not len(binaryNumbers):
                     return
                 else:
                     if binaryNumbers[len(binaryNumbers) - 1] == ":)":
-                        # 2 hoch counter - 1 wird zu final number addiert
-                        # print(2 ** (counter - 1))
                         finalNumber += 2 ** counter
+
                     counter += 1
                     del binaryNumbers[-1]
                     calc_number()
@@ -247,11 +251,13 @@ tok_index = 0
 
 def get_value(start, end):
     global tok_index
+
     if start == end:
         if tokens[start].type == "NUM":
             return NumberNode(tokens[start].value, tokens[start].line)
         elif tokens[start].type == "IDE":
             return VarAccessNode(tokens[start].value, tokens[start].line)
+
     elif (end - start) == 1 and tokens[start].type == "SIGN":
         return UnaryOpNode(tokens[start].value, NumberNode(tokens[end].value, tokens[end].line), tokens[start].line)
 
@@ -259,10 +265,13 @@ def get_value(start, end):
 
     def find_op(type, operators):
         global tok_index
+
         if tok_index == end:
             return None
+
         if tokens[tok_index].type == type and tokens[tok_index].value in operators:
             return tok_index
+
         tok_index += 1
         return find_op(type, operators)
 
@@ -270,11 +279,14 @@ def get_value(start, end):
     if not com_index:
         tok_index = start
         op_index = find_op("OP", ("PLUS", "MINUS"))
+
         if not op_index:
             tok_index = start
             op_index = find_op("OP", ("MUL", "DIV"))
+
         if not op_index:
             error("No value could be parsed!", tokens[start].line)
+
         left_node = get_value(start, op_index - 1)
         right_node = get_value(op_index + 1, end)
         return BinOpNode(tokens[op_index], left_node, right_node, tokens[op_index].line)
@@ -301,16 +313,19 @@ def return_nodes(start_, end_):
             if tokens[start].value == "PRINT":
                 break_ = find_line_break(start)
                 nodes.append(PrintNode(get_value(start + 1, break_), tokens[start].line))
+
         elif tokens[start].type == "VAR":
             if tokens[start + 1].type != "IDE" or tokens[start + 2].type != "ASS":
                 error("You didn't declare a variable correctly", tokens[start].line)
             break_ = find_line_break(start)
             nodes.append(VarAssignNode(tokens[start + 1].value, get_value(start + 3, break_), tokens[start].line))
+
         elif tokens[start].type == "IDE":
             if tokens[start + 1].type != "ASS":
                 error("Unknown Error", tokens[start].line)
             break_ = find_line_break(start)
             nodes.append(VarAssignNode(tokens[start].value, get_value(start + 2, break_), tokens[start].line))
+
         elif tokens[start].type == "LOOP":
             break_ = find_line_break(start)
             end_key = None
@@ -319,7 +334,8 @@ def return_nodes(start_, end_):
                     end_key = tokens.index(tok)
             if not end_key:
                 error("No END keyword was found for a loop!", tokens[start].line)
-            nodes.append(LoopNode(return_nodes(break_ + 1, end_key - 1), get_value(start + 1, break_), tokens[start].line))
+            nodes.append(LoopNode(return_nodes(break_ + 1, end_key - 1), get_value(start + 1, break_),
+                                  tokens[start].line))
             break_ = end_key
 
         elif tokens[start].type == "IF":
