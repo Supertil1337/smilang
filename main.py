@@ -131,7 +131,6 @@ def error(message, code_snippet=None):
 
 # print("\033[91m test \033[0m")
 
-# code = input("Emocode: ")
 file = open("age.txt", "r")
 code = file.readlines()
 tokens = []
@@ -144,46 +143,38 @@ for tokens_raw in code:
 
         if len(tokens_raw) == 0:
             break
-        if not tokens_raw[0]:
-            tokens_raw.remove(tokens_raw[0])
+        tok = tokens_raw[0]
+        if not tok:
+            del tokens_raw[0]
             continue
-        if tokens_raw[0] == ":-)":
+        if tok == ":-)":
             tokens.append(Token("OP", "PLUS"))
-        elif tokens_raw[0] == ":-(":
+        elif tok == ":-(":
             tokens.append(Token("OP", "MINUS"))
-        elif tokens_raw[0] == ":-*":
+        elif tok == ":-*":
             tokens.append(Token("OP", "MUL"))
-        elif tokens_raw[0] == ":-/":
+        elif tok == ":-/":
             tokens.append(Token("OP", "DIV"))
-        elif tokens_raw[0] == "<":
+        elif tok == "<":
             tokens.append(Token("COM", "SMA"))
-        elif tokens_raw[0] == ">":
+        elif tok == ">":
             tokens.append(Token("COM", "BIG"))
-        elif tokens_raw[0] == "==":
+        elif tok == "==":
             tokens.append(Token("COM", "EQU"))
-        elif tokens_raw[0] == "var":
-            # tokens.append(Token("ASS", tokens_raw[
-            #   1]))  # (DEC = Declaration) jetzt nich mehr, war vorher type     ASS für Variable Assign   im moment nur integers
-            # if len(tokens_raw) < 4 or tokens_raw[2] != "=":
-            # raise Exception("A variable cannot be declared without having a value assigned to it")
-            #    error("A variable cannot be declared without having a value assigned to it",
-            #          f"{tokens_raw[0]} {tokens_raw[1]}")
-
-            # tokens_raw.remove(tokens_raw[1])
-            # tokens_raw.remove(tokens_raw[1])
+        elif tok == "var":
             tokens.append(Token("VAR", "VAR"))
-        elif tokens_raw[0] == "=":
-            tokens.append(Token("EQU", "EQU"))
-        elif tokens_raw[0] == "print":
+        elif tok == "=":
+            tokens.append(Token("ASS", "EQU"))
+        elif tok == "print":
             tokens.append(Token("FUNC", "PRINT"))
-        elif tokens_raw[0] == "LOOP":
+        elif tok == "LOOP":
             tokens.append(Token("LOOP", "START"))
-        elif tokens_raw[0] == "IF":
+        elif tok == "IF":
             tokens.append(Token("IF", "START"))
-        elif tokens_raw[0] == "END":
+        elif tok == "END":
             tokens.append(Token("END", "END"))
-        elif tokens_raw[0] == ":)" or tokens_raw[0] == ":(":
-            binaryNumbers = [tokens_raw[0]]
+        elif tok == ":)" or tok == ":(":
+            binaryNumbers = [tok]
 
 
             def collect_binary_values():
@@ -191,7 +182,7 @@ for tokens_raw in code:
                     return
                 if tokens_raw[1] == ":)" or tokens_raw[1] == ":(":
                     binaryNumbers.append(tokens_raw[1])
-                    tokens_raw.remove(tokens_raw[1])
+                    del tokens_raw[1]
                     collect_binary_values()
 
 
@@ -201,7 +192,7 @@ for tokens_raw in code:
             counter = 0
 
             sign = binaryNumbers[0]
-            binaryNumbers.remove(binaryNumbers[0])
+            del binaryNumbers[0]
 
 
             def calc_number():
@@ -229,18 +220,9 @@ for tokens_raw in code:
             tokens.append(Token("NUM", finalNumber))
 
         else:
+            tokens.append(Token("IDE", tok))
 
-            # if len(tokens_raw) > 2 and tokens_raw[1] == "=":
-            # raise Exception("A variable cannot be declared without having a value assigned to it")
-            #    tokens.append(Token("ASS", tokens_raw[0]))
-            # error("A variable cannot be declared without having a value assigned to it",
-            #        f"{tokens_raw[0]} {tokens_raw[1]}")
-            # tokens_raw.remove(tokens_raw[1])
-            # else:
-            #    tokens.append(Token("ACC", tokens_raw[0]))  # ACC für Variable Access
-            tokens.append(Token("IDE", tokens_raw[0]))
-
-        tokens_raw.remove(tokens_raw[0])
+        del tokens_raw[0]
 
     tokens.append(Token("BREAK", "BREAK"))
 
@@ -256,8 +238,6 @@ tok_index = 0
 
 def get_value(start, end):
     global tok_index
-    # print(start, end)
-    # print(tokens[start:end+1])
     if start == end:
         if tokens[start].type == "NUM":
             return NumberNode(tokens[start].value)
@@ -270,7 +250,6 @@ def get_value(start, end):
 
     def find_op(type, operators):
         global tok_index
-        # print(tok_index, end)
         if tok_index == end:
             return None
         if tokens[tok_index].type == type and tokens[tok_index].value in operators:
@@ -279,7 +258,6 @@ def get_value(start, end):
         return find_op(type, operators)
 
     op_index = find_op("OP", ("PLUS", "MINUS"))
-    # print(op_index)
     if not op_index:
         tok_index = start
         op_index = find_op("OP", ("MUL", "DIV"))
@@ -317,12 +295,12 @@ def return_nodes(start_, end_):
                 break_ = find_line_break(start)
                 nodes.append(PrintNode(get_value(start + 1, break_)))
         elif tokens[start].type == "VAR":
-            if tokens[start + 1].type != "IDE" or tokens[start + 2].type != "EQU":
+            if tokens[start + 1].type != "IDE" or tokens[start + 2].type != "ASS":
                 error("You didn't declare a variable correctly", tokens[start:(start + 2)])
             break_ = find_line_break(start)
             nodes.append(VarAssignNode(tokens[start + 1].value, get_value(start + 3, break_)))
         elif tokens[start].type == "IDE":
-            if tokens[start + 1].type != "EQU":
+            if tokens[start + 1].type != "ASS":
                 error("Unknown Error", tokens[start:start + 1])
             break_ = find_line_break(start)
             nodes.append(VarAssignNode(tokens[start].value, get_value(start + 2, break_)))
@@ -352,7 +330,6 @@ def return_nodes(start_, end_):
             error("An expression must contain a function call or an assignment", f"{tokens[start]}")
 
         if break_ != end:
-            # print(tokens)
             create_nodes(break_ + 1, end)
 
     create_nodes(start_, end_)
@@ -387,12 +364,11 @@ def traverse_ast(node):
         elif op == "DIV":
             return left_value / right_value
 
-    # Brauch ich das eigentlich??
     elif type_ == "NumberNode":
         return node.value
 
     elif type_ == "UnaryOpNode":
-        number = node.node.value
+        number = traverse_ast(node.node)
         if node.value == "MINUS":
             number *= -1
 
@@ -400,7 +376,6 @@ def traverse_ast(node):
 
     elif type_ == "VarAssignNode":
         variables[node.name] = traverse_ast(node.value)
-        # print(f"Assigned {node.value} to {node.name}")
         return None
 
     elif type_ == "VarAccessNode":
