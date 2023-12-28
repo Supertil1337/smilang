@@ -185,52 +185,10 @@ for tokens_raw in code:
             tokens.append(Token("IF", "START", line))
         elif tok == "END":
             tokens.append(Token("END", "END", line))
-        elif tok == ":)" or tok == ":(":
-            binaryNumbers = [tok]
-
-            def collect_binary_values():
-                if len(tokens_raw) < 2:
-                    return
-                if tokens_raw[1] == ":)" or tokens_raw[1] == ":(":
-                    binaryNumbers.append(tokens_raw[1])
-                    del tokens_raw[1]
-                    collect_binary_values()
-
-            collect_binary_values()
-
-            # Calculate final number from binary values
-
-            finalNumber = 0
-            counter = 0
-
-            sign = binaryNumbers[0]
-            del binaryNumbers[0]
-
-
-            def calc_number():
-                global finalNumber
-                global counter
-
-                if not len(binaryNumbers):
-                    return
-                else:
-                    if binaryNumbers[len(binaryNumbers) - 1] == ":)":
-                        finalNumber += 2 ** counter
-
-                    counter += 1
-                    del binaryNumbers[-1]
-                    calc_number()
-
-
-            calc_number()
-
-            if sign == ":)":
-                tokens.append(Token("SIGN", "MINUS", line))
-            else:
-                tokens.append(Token("SIGN", "PLUS", line))
-
-            tokens.append(Token("NUM", finalNumber, line))
-
+        elif tok == ":)":
+            tokens.append(Token("NUM", "1", line))
+        elif tok == ":(":
+            tokens.append(Token("NUM", "0", line))
         else:
             tokens.append(Token("IDE", tok, line))
 
@@ -246,20 +204,52 @@ print(tokens)
 ################################
 
 
+def parse_number(start, end):
+    num = []
+    for token in tokens[start:end + 1]:
+        num.append(token.value)
+
+    # Calculate final number from binary values
+
+    final_number = 0
+    counter = 0
+
+    sign = num[0]
+    del num[0]
+
+    def calc_number():
+        nonlocal final_number
+        nonlocal counter
+
+        if not len(num):
+            return
+        else:
+            if num[-1] == "1":
+                final_number += 2 ** counter
+            elif num[-1] != "0":
+                error("No value could be parsed", tokens[start].line)
+            counter += 1
+            del num[-1]
+            calc_number()
+
+    calc_number()
+
+    if sign == "1":
+        return UnaryOpNode("MINUS", NumberNode(final_number, tokens[start].line), tokens[start].line)
+    elif sign == "0":
+        return UnaryOpNode("PLUS", NumberNode(final_number, tokens[start].line), tokens[start].line)
+    else:
+        error("No value could be parsed", tokens[start].line)
+
+
 tok_index = 0
 
 
 def get_value(start, end):
     global tok_index
 
-    if start == end:
-        if tokens[start].type == "NUM":
-            return NumberNode(tokens[start].value, tokens[start].line)
-        elif tokens[start].type == "IDE":
-            return VarAccessNode(tokens[start].value, tokens[start].line)
-
-    elif (end - start) == 1 and tokens[start].type == "SIGN":
-        return UnaryOpNode(tokens[start].value, NumberNode(tokens[end].value, tokens[end].line), tokens[start].line)
+    if start == end and tokens[start].type == "IDE":
+        return VarAccessNode(tokens[start].value, tokens[start].line)
 
     tok_index = start
 
@@ -285,7 +275,8 @@ def get_value(start, end):
             op_index = find_op("OP", ("MUL", "DIV"))
 
         if not op_index:
-            error("No value could be parsed!", tokens[start].line)
+            return parse_number(start, end)
+            # error("No value could be parsed!", tokens[start].line)
 
         left_node = get_value(start, op_index - 1)
         right_node = get_value(op_index + 1, end)
@@ -332,8 +323,10 @@ def return_nodes(start_, end_):
             for tok in tokens:
                 if tok.type == "END":
                     end_key = tokens.index(tok)
+
             if not end_key:
                 error("No END keyword was found for a loop!", tokens[start].line)
+
             nodes.append(LoopNode(return_nodes(break_ + 1, end_key - 1), get_value(start + 1, break_),
                                   tokens[start].line))
             break_ = end_key
@@ -344,11 +337,14 @@ def return_nodes(start_, end_):
             for tok in tokens:
                 if tok.type == "END":
                     end_key = tokens.index(tok)
+
             if not end_key:
                 error("No END keyword was found for an if statement!", tokens[start].line)
+
             con = get_value(start + 1, break_)
             if type(con).__name__ != "ComNode":
                 error("An if statement must be followed by a condition!", tokens[start].line)
+
             nodes.append(IfNode(con, return_nodes(break_ + 1, end_key - 1), tokens[start].line))
             break_ = end_key
 
