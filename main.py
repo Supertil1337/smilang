@@ -5,16 +5,18 @@ sys.setrecursionlimit(50)
 
 
 class Token:
-    def __init__(self, type_, value):
+    def __init__(self, type_, value, line):
         self.type = type_
         self.value = value
+        self.line = line
 
     def __repr__(self):
-        return f"{self.type}: {self.value}"
+        return f"{self.type}: {self.value} ({self.line})"
 
 
 class BinOpNode:
-    def __init__(self, token, left_node, right_node):
+    def __init__(self, token, left_node, right_node, line):
+        self.line = line
         self.token = token
         self.left_node = left_node
         self.right_node = right_node
@@ -37,7 +39,8 @@ class BinOpNode:
 
 
 class NumberNode:
-    def __init__(self, value):
+    def __init__(self, value, line):
+        self.line = line
         self.value = value
 
     def __repr__(self):
@@ -45,7 +48,8 @@ class NumberNode:
 
 
 class UnaryOpNode:
-    def __init__(self, value, node):
+    def __init__(self, value, node, line):
+        self.line = line
         self.value = value
         self.node = node
 
@@ -60,7 +64,8 @@ class UnaryOpNode:
 
 
 class VarAccessNode:
-    def __init__(self, name):
+    def __init__(self, name, line):
+        self.line = line
         self.name = name
 
     def __repr__(self):
@@ -68,7 +73,8 @@ class VarAccessNode:
 
 
 class VarAssignNode:
-    def __init__(self, name, value):
+    def __init__(self, name, value, line):
+        self.line = line
         self.name = name
         self.value = value
 
@@ -77,7 +83,8 @@ class VarAssignNode:
 
 
 class PrintNode:
-    def __init__(self, child_node):
+    def __init__(self, child_node, line):
+        self.line = line
         self.child_node = child_node
 
     def __repr__(self):
@@ -85,7 +92,8 @@ class PrintNode:
 
 
 class LoopNode:
-    def __init__(self, child_nodes, iterations):
+    def __init__(self, child_nodes, iterations, line):
+        self.line = line
         self.child_nodes = child_nodes
         self.iterations = iterations
 
@@ -94,7 +102,8 @@ class LoopNode:
 
 
 class IfNode:
-    def __init__(self, condition, child_nodes):
+    def __init__(self, condition, child_nodes, line):
+        self.line = line
         self.condition = condition
         self.child_nodes = child_nodes
 
@@ -104,7 +113,8 @@ class IfNode:
 
 # Comparison(Boolean)
 class ComNode:
-    def __init__(self, equality_operator, left_node, right_node):
+    def __init__(self, equality_operator, left_node, right_node, line):
+        self.line = line
         self.equality_operator = equality_operator
         self.left_node = left_node
         self.right_node = right_node
@@ -117,11 +127,8 @@ class ComNode:
 # class Position:
 
 
-def error(message, code_snippet=None):
-    if not code_snippet:
-        print(f"\033[91mERROR\n{message} \033[0m")
-    else:
-        print(f"\033[91mERROR\n{message}\nYour code: {code_snippet} \033[0m")
+def error(message, line):
+    print(f"\033[91mERROR\n{message}\nYour code (Line {line}): {code[line]} \033[0m")
     exit()
 
 
@@ -131,9 +138,10 @@ def error(message, code_snippet=None):
 
 # print("\033[91m test \033[0m")
 
-file = open("age.txt", "r")
+file = open("test.txt", "r")
 code = file.readlines()
 tokens = []
+line = 0
 
 for tokens_raw in code:
     tokens_raw = tokens_raw.split(" ")
@@ -148,31 +156,31 @@ for tokens_raw in code:
             del tokens_raw[0]
             continue
         if tok == ":-)":
-            tokens.append(Token("OP", "PLUS"))
+            tokens.append(Token("OP", "PLUS", line))
         elif tok == ":-(":
-            tokens.append(Token("OP", "MINUS"))
+            tokens.append(Token("OP", "MINUS", line))
         elif tok == ":-*":
-            tokens.append(Token("OP", "MUL"))
+            tokens.append(Token("OP", "MUL", line))
         elif tok == ":-/":
-            tokens.append(Token("OP", "DIV"))
+            tokens.append(Token("OP", "DIV", line))
         elif tok == "<":
-            tokens.append(Token("COM", "SMA"))
+            tokens.append(Token("COM", "SMA", line))
         elif tok == ">":
-            tokens.append(Token("COM", "BIG"))
+            tokens.append(Token("COM", "BIG", line))
         elif tok == "==":
-            tokens.append(Token("COM", "EQU"))
+            tokens.append(Token("COM", "EQU", line))
         elif tok == "var":
-            tokens.append(Token("VAR", "VAR"))
+            tokens.append(Token("VAR", "VAR", line))
         elif tok == "=":
-            tokens.append(Token("ASS", "EQU"))
+            tokens.append(Token("ASS", "EQU", line))
         elif tok == "print":
-            tokens.append(Token("FUNC", "PRINT"))
+            tokens.append(Token("FUNC", "PRINT", line))
         elif tok == "LOOP":
-            tokens.append(Token("LOOP", "START"))
+            tokens.append(Token("LOOP", "START", line))
         elif tok == "IF":
-            tokens.append(Token("IF", "START"))
+            tokens.append(Token("IF", "START", line))
         elif tok == "END":
-            tokens.append(Token("END", "END"))
+            tokens.append(Token("END", "END", line))
         elif tok == ":)" or tok == ":(":
             binaryNumbers = [tok]
 
@@ -213,18 +221,19 @@ for tokens_raw in code:
             calc_number()
 
             if sign == ":)":
-                tokens.append(Token("SIGN", "MINUS"))
+                tokens.append(Token("SIGN", "MINUS", line))
             else:
-                tokens.append(Token("SIGN", "PLUS"))
+                tokens.append(Token("SIGN", "PLUS", line))
 
-            tokens.append(Token("NUM", finalNumber))
+            tokens.append(Token("NUM", finalNumber, line))
 
         else:
-            tokens.append(Token("IDE", tok))
+            tokens.append(Token("IDE", tok, line))
 
         del tokens_raw[0]
 
-    tokens.append(Token("BREAK", "BREAK"))
+    tokens.append(Token("BREAK", "BREAK", line))
+    line += 1
 
 print(tokens)
 
@@ -240,11 +249,11 @@ def get_value(start, end):
     global tok_index
     if start == end:
         if tokens[start].type == "NUM":
-            return NumberNode(tokens[start].value)
+            return NumberNode(tokens[start].value, tokens[start].line)
         elif tokens[start].type == "IDE":
-            return VarAccessNode(tokens[start].value)
+            return VarAccessNode(tokens[start].value, tokens[start].line)
     elif (end - start) == 1 and tokens[start].type == "SIGN":
-        return UnaryOpNode(tokens[start].value, NumberNode(tokens[end].value))
+        return UnaryOpNode(tokens[start].value, NumberNode(tokens[end].value, tokens[end].line), tokens[start].line)
 
     tok_index = start
 
@@ -257,24 +266,22 @@ def get_value(start, end):
         tok_index += 1
         return find_op(type, operators)
 
-    op_index = find_op("OP", ("PLUS", "MINUS"))
-    if not op_index:
+    com_index = find_op("COM", ("EQU", "SMA", "BIG"))
+    if not com_index:
         tok_index = start
-        op_index = find_op("OP", ("MUL", "DIV"))
+        op_index = find_op("OP", ("PLUS", "MINUS"))
+        if not op_index:
+            tok_index = start
+            op_index = find_op("OP", ("MUL", "DIV"))
+        if not op_index:
+            error("No value could be parsed!", tokens[start].line)
+        left_node = get_value(start, op_index - 1)
+        right_node = get_value(op_index + 1, end)
+        return BinOpNode(tokens[op_index], left_node, right_node, tokens[op_index].line)
 
-    if not op_index:
-        tok_index = start
-        com_index = find_op("COM", ("EQU", "SMA", "BIG"))
-        if not com_index:
-            error("No value could be parsed!", tokens[start:end + 1])
-
-        left_node = get_value(start, com_index - 1)
-        right_node = get_value(com_index + 1, end)
-        return ComNode(tokens[com_index].value, left_node, right_node)
-
-    left_node = get_value(start, op_index - 1)
-    right_node = get_value(op_index + 1, end)
-    return BinOpNode(tokens[op_index], left_node, right_node)
+    left_node = get_value(start, com_index - 1)
+    right_node = get_value(com_index + 1, end)
+    return ComNode(tokens[com_index].value, left_node, right_node, tokens[com_index].line)
 
 
 def return_nodes(start_, end_):
@@ -293,17 +300,17 @@ def return_nodes(start_, end_):
         if tokens[start].type == "FUNC":
             if tokens[start].value == "PRINT":
                 break_ = find_line_break(start)
-                nodes.append(PrintNode(get_value(start + 1, break_)))
+                nodes.append(PrintNode(get_value(start + 1, break_), tokens[start].line))
         elif tokens[start].type == "VAR":
             if tokens[start + 1].type != "IDE" or tokens[start + 2].type != "ASS":
-                error("You didn't declare a variable correctly", tokens[start:(start + 2)])
+                error("You didn't declare a variable correctly", tokens[start].line)
             break_ = find_line_break(start)
-            nodes.append(VarAssignNode(tokens[start + 1].value, get_value(start + 3, break_)))
+            nodes.append(VarAssignNode(tokens[start + 1].value, get_value(start + 3, break_), tokens[start].line))
         elif tokens[start].type == "IDE":
             if tokens[start + 1].type != "ASS":
-                error("Unknown Error", tokens[start:start + 1])
+                error("Unknown Error", tokens[start].line)
             break_ = find_line_break(start)
-            nodes.append(VarAssignNode(tokens[start].value, get_value(start + 2, break_)))
+            nodes.append(VarAssignNode(tokens[start].value, get_value(start + 2, break_), tokens[start].line))
         elif tokens[start].type == "LOOP":
             break_ = find_line_break(start)
             end_key = None
@@ -311,8 +318,8 @@ def return_nodes(start_, end_):
                 if tok.type == "END":
                     end_key = tokens.index(tok)
             if not end_key:
-                error("No END keyword was found for a loop!")
-            nodes.append(LoopNode(return_nodes(break_ + 1, end_key - 1), get_value(start + 1, break_)))
+                error("No END keyword was found for a loop!", tokens[start].line)
+            nodes.append(LoopNode(return_nodes(break_ + 1, end_key - 1), get_value(start + 1, break_), tokens[start].line))
             break_ = end_key
 
         elif tokens[start].type == "IF":
@@ -322,12 +329,15 @@ def return_nodes(start_, end_):
                 if tok.type == "END":
                     end_key = tokens.index(tok)
             if not end_key:
-                error("No END keyword was found for an if statement!")
-            nodes.append(IfNode(get_value(start + 1, break_), return_nodes(break_ + 1, end_key - 1)))
+                error("No END keyword was found for an if statement!", tokens[start].line)
+            con = get_value(start + 1, break_)
+            if type(con).__name__ != "ComNode":
+                error("An if statement must be followed by a condition!", tokens[start].line)
+            nodes.append(IfNode(con, return_nodes(break_ + 1, end_key - 1), tokens[start].line))
             break_ = end_key
 
         elif start == 0:
-            error("An expression must contain a function call or an assignment", f"{tokens[start]}")
+            error("An expression must contain a function call or an assignment", 0)
 
         if break_ != end:
             create_nodes(break_ + 1, end)
@@ -362,6 +372,8 @@ def traverse_ast(node):
         elif op == "MUL":
             return left_value * right_value
         elif op == "DIV":
+            if right_value == 0:
+                error("Division by Zero", node.line)
             return left_value / right_value
 
     elif type_ == "NumberNode":
@@ -379,14 +391,17 @@ def traverse_ast(node):
         return None
 
     elif type_ == "VarAccessNode":
-        if not variables.get(node.name):
-            error("Unknown Error, did you spell something wrong?")
+        if variables.get(node.name) is None:
+            error("Unknown Error, did you spell something wrong?", node.line)
         return variables[node.name]
 
     elif type_ == "PrintNode":
         print(traverse_ast(node.child_node))
 
     elif type_ == "LoopNode":
+        it = traverse_ast(node.iterations)
+        if it < 1:
+            error("The iterations of a loop can't be 0 or lower", node.line)
         for _ in range(traverse_ast(node.iterations)):
             for node_ in node.child_nodes:
                 traverse_ast(node_)
