@@ -1,7 +1,17 @@
 import sys
+import subprocess
 
 # REMOVE LATER
 sys.setrecursionlimit(50)
+
+
+def handler(type, value, tb):
+    print("An unknown exception occured while executing the program""\n"
+          f"Python Output: {value}")
+    subprocess.run(["pause"], shell=True)
+
+
+sys.excepthook = handler
 
 
 class Token:
@@ -138,8 +148,11 @@ def error(message, line):
 
 # print("\033[91m test \033[0m")
 
-file = open("test.txt", "r")
+# file = open("test.txt", "r")
+print(sys.argv)
+file = open(sys.argv[1], "r")
 code = file.readlines()
+file.close()
 tokens = []
 line = 0
 
@@ -198,6 +211,7 @@ for tokens_raw in code:
     line += 1
 
 print(tokens)
+
 
 ################################
 #        PARSER
@@ -436,3 +450,5 @@ def traverse_ast(node):
 
 for node in start_nodes:
     traverse_ast(node)
+
+subprocess.run(["pause"], shell=True)
