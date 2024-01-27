@@ -49,27 +49,18 @@ class BinOpNode:
 
 
 class NumberNode:
-    def __init__(self, value, line):
+    def __init__(self, sign, value, line):
         self.line = line
+        self.sign = sign
         self.value = value
 
     def __repr__(self):
-        return f"{self.value}"
-
-
-class UnaryOpNode:
-    def __init__(self, value, node, line):
-        self.line = line
-        self.value = value
-        self.node = node
-
-    def __repr__(self):
-        return f"{self.get_tok_char()}{self.node}"
+        return f"{self.get_tok_char()}{self.value}"
 
     def get_tok_char(self):
-        if self.value == "PLUS":
+        if self.sign == "PLUS":
             return "+"
-        elif self.value == "MINUS":
+        elif self.sign == "MINUS":
             return "-"
 
 
@@ -138,7 +129,7 @@ class ComNode:
 
 
 def error(message, line):
-    print(f"\033[91mERROR\n{message}\nYour code (Line {line}): {code[line]} \033[0m")
+    print(f"\033[91mERROR\n{message}\nYour code (Line {line}): {code[line - 1]} \033[0m")
     exit()
 
 
@@ -154,7 +145,7 @@ file = open(sys.argv[1], "r")
 code = file.readlines()
 file.close()
 tokens = []
-line = 0
+line = 1
 
 for tokens_raw in code:
     tokens_raw = tokens_raw.split(" ")
@@ -198,6 +189,21 @@ for tokens_raw in code:
             tokens.append(Token("IF", "START", line))
         elif tok == "END":
             tokens.append(Token("END", "END", line))
+
+        # String
+        elif tok == ":^)":
+            tokens.append(Token("STRING", "1", line))
+        elif tok == ":-]":
+            tokens.append(Token("STRING", "2", line))
+        elif tok == "=]":
+            tokens.append(Token("STRING", "3", line))
+        elif tok == ":]":
+            tokens.append(Token("STRING", "4", line))
+        elif tok == ":D":
+            tokens.append(Token("STRING", "5", line))
+        elif tok == ":-D":
+            tokens.append(Token("STRING", "6", line))
+
         elif tok == ":)":
             tokens.append(Token("NUM", "1", line))
         elif tok == ":(":
@@ -249,9 +255,9 @@ def parse_number(start, end):
     calc_number()
 
     if sign == "1":
-        return UnaryOpNode("MINUS", NumberNode(final_number, tokens[start].line), tokens[start].line)
+        return NumberNode("MINUS", final_number, tokens[start].line)
     elif sign == "0":
-        return UnaryOpNode("PLUS", NumberNode(final_number, tokens[start].line), tokens[start].line)
+        return NumberNode("PLUS", final_number, tokens[start].line)
     else:
         error("No value could be parsed", tokens[start].line)
 
@@ -313,6 +319,13 @@ def return_nodes(start_, end_):
             else:
                 return find_line_break(_start + 1)
 
+        def find_end_token(name):
+            for tok in tokens:
+                if tok.type == "END":
+                    return tokens.index(tok)
+
+            error(f"No END keyword was found for a {name}!", tokens[start].line)
+
         break_ = start
         if tokens[start].type == "FUNC":
             if tokens[start].value == "PRINT":
@@ -333,13 +346,7 @@ def return_nodes(start_, end_):
 
         elif tokens[start].type == "LOOP":
             break_ = find_line_break(start)
-            end_key = None
-            for tok in tokens:
-                if tok.type == "END":
-                    end_key = tokens.index(tok)
-
-            if not end_key:
-                error("No END keyword was found for a loop!", tokens[start].line)
+            end_key = find_end_token("loop")
 
             nodes.append(LoopNode(return_nodes(break_ + 1, end_key - 1), get_value(start + 1, break_),
                                   tokens[start].line))
@@ -347,13 +354,7 @@ def return_nodes(start_, end_):
 
         elif tokens[start].type == "IF":
             break_ = find_line_break(start)
-            end_key = None
-            for tok in tokens:
-                if tok.type == "END":
-                    end_key = tokens.index(tok)
-
-            if not end_key:
-                error("No END keyword was found for an if statement!", tokens[start].line)
+            end_key = find_end_token("if statement")
 
             con = get_value(start + 1, break_)
             if type(con).__name__ != "ComNode":
@@ -403,10 +404,7 @@ def traverse_ast(node):
             return left_value / right_value
 
     elif type_ == "NumberNode":
-        return node.value
-
-    elif type_ == "UnaryOpNode":
-        number = traverse_ast(node.node)
+        number = node.value
         if node.value == "MINUS":
             number *= -1
 
