@@ -1,4 +1,0 @@
-var hi = :( :) :)
-IF hi < :( :) :(
-print hi
-END

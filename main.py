@@ -7,11 +7,11 @@ sys.setrecursionlimit(50)
 
 def handler(type, value, tb):
     print("An unknown exception occured while executing the program""\n"
-          f"Python Output: {value}")
+          f"Python Output: {type, value, tb}")
     subprocess.run(["pause"], shell=True)
 
 
-sys.excepthook = handler
+# sys.excepthook = handler
 
 
 class Token:
@@ -62,6 +62,15 @@ class NumberNode:
             return "+"
         elif self.sign == "MINUS":
             return "-"
+
+
+class StringNode:
+    def __init__(self, value, line):
+        self.value = value
+        self.line = line
+
+    def __repr__(self):
+        return f'"{self.value}"'
 
 
 class VarAccessNode:
@@ -133,6 +142,9 @@ def error(message, line):
     exit()
 
 
+chars = [["a", "b", "c", "d", "e"], ["f", "g", "h", "i", "j"], ["k", "l", "m", "n", "o"], ["p", "q", "r", "s", "t"],
+         ["u", "v", "w", "x", "y"], "z"]
+
 #############################
 #       Lexer
 #############################
@@ -203,6 +215,8 @@ for tokens_raw in code:
             tokens.append(Token("STRING", "5", line))
         elif tok == ":-D":
             tokens.append(Token("STRING", "6", line))
+        elif tok == ":))":
+            tokens.append(Token("STRING", "UPPER", line))
 
         elif tok == ":)":
             tokens.append(Token("NUM", "1", line))
@@ -262,6 +276,30 @@ def parse_number(start, end):
         error("No value could be parsed", tokens[start].line)
 
 
+def parse_string(start, end):
+    # ein character besteht aus einem optionalen emoticon dass sagt dass es uppercase ist und dann zwei weiteren
+    # check für uppercase char
+    # dann zwei tokens nehmen und char bestimmen
+
+    cur_tok = start
+
+    def get_char():
+        nonlocal cur_tok
+
+        if tokens[cur_tok].value == "UPPER":
+            cur_tok += 1
+            return get_char().upper()
+        else:
+            return chars[int(tokens[cur_tok].value) - 1][int(tokens[cur_tok + 1].value) - 1]
+
+    string = ""
+    while cur_tok < end:
+        string += get_char()
+        cur_tok += 2
+
+    return StringNode(string, tokens[start].line)
+
+
 tok_index = 0
 
 
@@ -295,6 +333,8 @@ def get_value(start, end):
             op_index = find_op("OP", ("MUL", "DIV"))
 
         if not op_index:
+            if tokens[tok_index].type == "STRING":
+                return parse_string(start, end)
             return parse_number(start, end)
             # error("No value could be parsed!", tokens[start].line)
 
@@ -409,6 +449,9 @@ def traverse_ast(node):
             number *= -1
 
         return number
+
+    elif type_ == "StringNode":
+        return node.value
 
     elif type_ == "VarAssignNode":
         variables[node.name] = traverse_ast(node.value)
