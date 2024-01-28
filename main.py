@@ -299,7 +299,7 @@ def parse_string(start, end):
             return chars[int(tokens[cur_tok].value) - 1][int(tokens[cur_tok + 1].value) - 1]
 
     string = ""
-    while cur_tok  < end:
+    while cur_tok <= end:
         print(cur_tok, end)
         string += get_char()
         cur_tok += 2
