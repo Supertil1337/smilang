@@ -286,14 +286,21 @@ def parse_string(start, end):
     def get_char():
         nonlocal cur_tok
 
+        if tokens[cur_tok].type != "STRING":
+            error("No value could be parsed", tokens[cur_tok].line)
+
         if tokens[cur_tok].value == "UPPER":
             cur_tok += 1
             return get_char().upper()
+        elif tokens[cur_tok].value == "6":
+            cur_tok -= 1
+            return chars[5]
         else:
             return chars[int(tokens[cur_tok].value) - 1][int(tokens[cur_tok + 1].value) - 1]
 
     string = ""
-    while cur_tok < end:
+    while cur_tok  < end:
+        print(cur_tok, end)
         string += get_char()
         cur_tok += 2
 
@@ -333,7 +340,7 @@ def get_value(start, end):
             op_index = find_op("OP", ("MUL", "DIV"))
 
         if not op_index:
-            if tokens[tok_index].type == "STRING":
+            if tokens[start].type == "STRING":
                 return parse_string(start, end)
             return parse_number(start, end)
             # error("No value could be parsed!", tokens[start].line)
@@ -429,6 +436,8 @@ variables = {}
 def traverse_ast(node):
     type_ = type(node).__name__
     if type_ == "BinOpNode":
+        if type(node.left_node).__name__ == "StringNode" or type(node.right_node).__name__ == "StringNode":
+            error("Strings can't  be added to integers or concatenated with other strings", node.line)
         left_value = traverse_ast(node.left_node)
         right_value = traverse_ast(node.right_node)
         op = node.token.value
