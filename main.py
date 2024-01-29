@@ -145,6 +145,31 @@ def error(message, line):
 chars = [["a", "b", "c", "d", "e"], ["f", "g", "h", "i", "j"], ["k", "l", "m", "n", "o"], ["p", "q", "r", "s", "t"],
          ["u", "v", "w", "x", "y"], "z"]
 
+token_dict = {
+    ":-)": ["OP", "PLUS"],
+    ":-(": ["OP", "MINUS"],
+    ":-*": ["OP", "MUL"],
+    ":-/": ["OP", "DIV"],
+    "<": ["COM", "SMA"],
+    ">": ["COM", "BIG"],
+    "==": ["COM", "EQU"],
+    "var": ["VAR", "VAR"],
+    "=": ["ASS", "EQU"],
+    "print": ["FUNC", "PRINT"],
+    "LOOP": ["LOOP", "START"],
+    "IF": ["IF", "STATEMENT"],
+    "END": ["END", "END"],
+    ":^)": ["STRING", "1"],
+    ":-]": ["STRING", "2"],
+    "=]": ["STRING", "3"],
+    ":]": ["STRING", "4"],
+    ":D": ["STRING", "5"],
+    ":-D": ["STRING", "6"],
+    ":))": ["STRING", "UPPER"],
+    ":)": ["NUM", "1"],
+    ":(": ["NUM", "0"]
+}
+
 #############################
 #       Lexer
 #############################
@@ -175,53 +200,9 @@ for tokens_raw in code:
             del tokens_raw[0]
             continue
 
-        if tok == ":-)":
-            tokens.append(Token("OP", "PLUS", line))
-        elif tok == ":-(":
-            tokens.append(Token("OP", "MINUS", line))
-        elif tok == ":-*":
-            tokens.append(Token("OP", "MUL", line))
-        elif tok == ":-/":
-            tokens.append(Token("OP", "DIV", line))
-        elif tok == "<":
-            tokens.append(Token("COM", "SMA", line))
-        elif tok == ">":
-            tokens.append(Token("COM", "BIG", line))
-        elif tok == "==":
-            tokens.append(Token("COM", "EQU", line))
-        elif tok == "var":
-            tokens.append(Token("VAR", "VAR", line))
-        elif tok == "=":
-            tokens.append(Token("ASS", "EQU", line))
-        elif tok == "print":
-            tokens.append(Token("FUNC", "PRINT", line))
-        elif tok == "LOOP":
-            tokens.append(Token("LOOP", "START", line))
-        elif tok == "IF":
-            tokens.append(Token("IF", "START", line))
-        elif tok == "END":
-            tokens.append(Token("END", "END", line))
-
-        # String
-        elif tok == ":^)":
-            tokens.append(Token("STRING", "1", line))
-        elif tok == ":-]":
-            tokens.append(Token("STRING", "2", line))
-        elif tok == "=]":
-            tokens.append(Token("STRING", "3", line))
-        elif tok == ":]":
-            tokens.append(Token("STRING", "4", line))
-        elif tok == ":D":
-            tokens.append(Token("STRING", "5", line))
-        elif tok == ":-D":
-            tokens.append(Token("STRING", "6", line))
-        elif tok == ":))":
-            tokens.append(Token("STRING", "UPPER", line))
-
-        elif tok == ":)":
-            tokens.append(Token("NUM", "1", line))
-        elif tok == ":(":
-            tokens.append(Token("NUM", "0", line))
+        token = token_dict.get(tok)
+        if token:
+            tokens.append(Token(token[0], token[1], line))
         else:
             tokens.append(Token("IDE", tok, line))
 
