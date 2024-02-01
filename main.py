@@ -112,13 +112,23 @@ class LoopNode:
 
 
 class IfNode:
-    def __init__(self, condition, child_nodes, line):
+    def __init__(self, condition, child_nodes, else_nodes, line):
         self.line = line
         self.condition = condition
         self.child_nodes = child_nodes
+        self.else_nodes = else_nodes
 
     def __repr__(self):
-        return f"If({self.condition})Then({self.child_nodes})"
+        return f"If({self.condition})Then({self.child_nodes})Else({self.else_nodes})"
+
+
+class ElseNode:
+    def __init__(self, child_nodes, line):
+        self.child_nodes = child_nodes
+        self.line = line
+
+    def __repr__(self):
+        return f"{self.child_nodes}"
 
 
 # Comparison(Boolean)
@@ -158,6 +168,7 @@ token_dict = {
     "print": ["FUNC", "PRINT"],
     "LOOP": ["LOOP", "START"],
     "IF": ["IF", "STATEMENT"],
+    "ELSE": ["ELSE", "STATEMENT"],
     "END": ["END", "END"],
     ":^)": ["STRING", "1"],
     ":-]": ["STRING", "2"],
@@ -281,7 +292,7 @@ def parse_string(start, end):
 
     string = ""
     while cur_tok <= end:
-        print(cur_tok, end)
+        # print(cur_tok, end)
         string += get_char()
         cur_tok += 2
 
@@ -347,8 +358,9 @@ def return_nodes(start_, end_):
             else:
                 return find_line_break(_start + 1)
 
-        def find_end_token(name):
-            for tok in tokens:
+        def find_end_token(_start, name):
+            toks = tokens[_start:len(tokens)]
+            for tok in toks:
                 if tok.type == "END":
                     return tokens.index(tok)
 
@@ -374,7 +386,7 @@ def return_nodes(start_, end_):
 
         elif tokens[start].type == "LOOP":
             break_ = find_line_break(start)
-            end_key = find_end_token("loop")
+            end_key = find_end_token(start, "loop")
 
             nodes.append(LoopNode(return_nodes(break_ + 1, end_key - 1), get_value(start + 1, break_),
                                   tokens[start].line))
@@ -382,13 +394,32 @@ def return_nodes(start_, end_):
 
         elif tokens[start].type == "IF":
             break_ = find_line_break(start)
-            end_key = find_end_token("if statement")
+            end_key = find_end_token(start, "if statement")
 
             con = get_value(start + 1, break_)
             if type(con).__name__ != "ComNode":
                 error("An if statement must be followed by a condition!", tokens[start].line)
 
-            nodes.append(IfNode(con, return_nodes(break_ + 1, end_key - 1), tokens[start].line))
+            nodes.append(IfNode(con, return_nodes(break_ + 1, end_key - 1), None, tokens[start].line))
+            break_ = end_key
+
+        elif tokens[start].type == "ELSE":
+            break_ = find_line_break(start)
+            end_key = find_end_token(start, "else statement")
+            if_node = None
+
+            for i in reversed(nodes):
+                if type(i).__name__ == "IfNode":
+                    if_node = i
+                    index = nodes.index(i)
+                    break
+
+            if not if_node:
+                error("No if statements were found above an else statement", tokens[start].line)
+
+            if_node.else_nodes = return_nodes(break_ + 1, end_key - 1)
+            print(if_node.else_nodes)
+            nodes[-index] = if_node
             break_ = end_key
 
         elif start == 0:
@@ -476,6 +507,9 @@ def traverse_ast(node):
             condition = traverse_ast(left_node) == traverse_ast(right_node)
         if condition:
             for node_ in node.child_nodes:
+                traverse_ast(node_)
+        else:
+            for node_ in node.else_nodes:
                 traverse_ast(node_)
 
 

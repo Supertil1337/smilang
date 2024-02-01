@@ -2,3 +2,7 @@ var alter = :( :) :) :) :)
 IF alter > :( :) :( :( :( :)
 print alter
 END
+ELSE
+print :)) :D :-] :^) :D :] =] :] :] :^) =] :-] =] :D =] :-] :] =] :] :^) :] :^) :D
+print alter
+END
