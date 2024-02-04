@@ -41,5 +41,5 @@ Source: "C:\Users\tilma\Documents\GitHub\esolang\installer\register.bat"; DestDi
 ;Root: HKLM; Subkey: "Software\Classes\.smiley"; Flags: uninsdeletekeyifempty; ValueType: string; ValueName: "Association"; ValueData: "SmilangScript"
 
 [Run]
-Filename: "{app}\register.bat"; Flags: runascurrentuser shellexec; Parameters: "{app}\main.exe"
+Filename: "{app}\register.bat"; Flags: runascurrentuser shellexec; Parameters: """{app}\main.exe"""
 
