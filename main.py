@@ -163,6 +163,7 @@ token_dict = {
     "<": ["COM", "SMA"],
     ">": ["COM", "BIG"],
     "==": ["COM", "EQU"],
+    "!=": ["COM", "UNEQU"],
     "var": ["VAR", "VAR"],
     "=": ["ASS", "EQU"],
     "print": ["FUNC", "PRINT"],
@@ -322,7 +323,7 @@ def get_value(start, end):
         tok_index += 1
         return find_op(type, operators)
 
-    com_index = find_op("COM", ("EQU", "SMA", "BIG"))
+    com_index = find_op("COM", ("EQU", "SMA", "BIG", "UNEQU"))
     if not com_index:
         tok_index = start
         op_index = find_op("OP", ("PLUS", "MINUS"))
@@ -505,6 +506,8 @@ def traverse_ast(node):
             condition = traverse_ast(left_node) > traverse_ast(right_node)
         elif op == "EQU":
             condition = traverse_ast(left_node) == traverse_ast(right_node)
+        elif op == "UNEQU":
+            condition = traverse_ast(left_node) != traverse_ast(right_node)
         if condition:
             for node_ in node.child_nodes:
                 traverse_ast(node_)

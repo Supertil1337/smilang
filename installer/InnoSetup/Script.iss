@@ -34,8 +34,12 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 [Files]
 Source: "C:\Users\tilma\Documents\GitHub\esolang\build\main.exe"; DestDir: {app}
+Source: "C:\Users\tilma\Documents\GitHub\esolang\installer\register.bat"; DestDir: {app}
 
-[Registry]
-Root: HKLM; Subkey: "Software\Classes\SmilangScript\Shell\Open\Command"; Flags: uninsdeletekeyifempty; ValueType: string; ValueName: "RunInterpreter"; ValueData: "{app}\main.exe %1 %*"
-Root: HKLM; Subkey: "Software\Classes\.smiley"; Flags: uninsdeletekeyifempty; ValueType: string; ValueName: "Association"; ValueData: "SmilangScript"
+;[Registry]
+;Root: HKLM; Subkey: "Software\Classes\SmilangScript\Shell\Open\Command"; Flags: uninsdeletekeyifempty; ValueType: string; ValueName: "RunInterpreter"; ValueData: "{app}\main.exe %1 %*"
+;Root: HKLM; Subkey: "Software\Classes\.smiley"; Flags: uninsdeletekeyifempty; ValueType: string; ValueName: "Association"; ValueData: "SmilangScript"
+
+[Run]
+Filename: "{app}\register.bat"; Flags: runascurrentuser shellexec; Parameters: "{app}\main.exe"
 
