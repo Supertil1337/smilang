@@ -24,7 +24,7 @@ class Token:
         return f"{self.type}: {self.value} ({self.line})"
 
 
-class BinOpNode:
+class BasicOpNode:
     def __init__(self, token, left_node, right_node, line):
         self.line = line
         self.token = token
@@ -148,7 +148,10 @@ class ComNode:
 
 
 def error(message, line):
-    print(f"\033[91mERROR\n{message}\nYour code (Line {line}): {code[line - 1]} \033[0m")
+    if line:
+        print(f"\033[91mERROR\n{message}\nYour code (Line {line}): {code[line - 1]} \033[0m")
+    else:
+        print(f"\033[91mERROR\n{message}\033[0m")
     exit()
 
 
@@ -164,7 +167,6 @@ token_dict = {
     ">": ["COM", "BIG"],
     "==": ["COM", "EQU"],
     "!=": ["COM", "UNEQU"],
-    "var": ["VAR", "VAR"],
     "=": ["ASS", "EQU"],
     "print": ["FUNC", "PRINT"],
     "LOOP": ["LOOP", "START"],
@@ -179,7 +181,12 @@ token_dict = {
     ":-D": ["STRING", "6"],
     ":))": ["STRING", "UPPER"],
     ":)": ["NUM", "1"],
-    ":(": ["NUM", "0"]
+    ":(": ["NUM", "0"],
+    ";)": ["NAME", "1"],
+    ";-)": ["NAME", "2"],
+    ";D": ["NAME", "3"],
+    ":P": ["NAME", "4"],
+    ":-o": ["NAME", "5"]
 }
 
 #############################
@@ -190,7 +197,10 @@ token_dict = {
 
 # file = open("test.txt", "r")
 print(sys.argv)
-file = open(sys.argv[1], "r")
+try:
+    file = open(sys.argv[1], "r")
+except OSError:
+    error("Something went wrong while opening", None)
 code = file.readlines()
 file.close()
 tokens = []
@@ -216,7 +226,8 @@ for tokens_raw in code:
         if token:
             tokens.append(Token(token[0], token[1], line))
         else:
-            tokens.append(Token("IDE", tok, line))
+            # tokens.append(Token("IDE", tok, line))
+            error("An error occured while tokenizing this line", line)
 
         del tokens_raw[0]
 
@@ -285,7 +296,7 @@ def parse_string(start, end):
         if tokens[cur_tok].value == "UPPER":
             cur_tok += 1
             return get_char().upper()
-        elif tokens[cur_tok].value == "6":
+        elif tokens[cur_tok].value == 6:
             cur_tok -= 1
             return chars[5]
         else:
@@ -300,59 +311,69 @@ def parse_string(start, end):
     return StringNode(string, tokens[start].line)
 
 
-tok_index = 0
+def parse_name(start):
+    name = ""
+    for tok in tokens[start:start + 5]:
+        if tok.type == "NAME":
+            name += tok.value
+        else:
+            break
+    return name
 
 
-def get_value(start, end):
-    global tok_index
+def find_op(type, operators, tok_index, end):
+    if tok_index == end:
+        return None
 
-    if start == end and tokens[start].type == "IDE":
-        return VarAccessNode(tokens[start].value, tokens[start].line)
+    if tokens[tok_index].type == type and tokens[tok_index].value in operators:
+        return tok_index
 
-    tok_index = start
+    tok_index += 1
+    return find_op(type, operators, tok_index, end)
 
-    def find_op(type, operators):
-        global tok_index
 
-        if tok_index == end:
-            return None
-
-        if tokens[tok_index].type == type and tokens[tok_index].value in operators:
-            return tok_index
-
-        tok_index += 1
-        return find_op(type, operators)
-
-    com_index = find_op("COM", ("EQU", "SMA", "BIG", "UNEQU"))
+def get_condition(start, end):
+    com_index = find_op("COM", ("EQU", "SMA", "BIG", "UNEQU"), start, end)
     if not com_index:
-        tok_index = start
-        op_index = find_op("OP", ("PLUS", "MINUS"))
-
-        if not op_index:
-            tok_index = start
-            op_index = find_op("OP", ("MUL", "DIV"))
-
-        if not op_index:
-            if tokens[start].type == "STRING":
-                return parse_string(start, end)
-            return parse_number(start, end)
-            # error("No value could be parsed!", tokens[start].line)
-
-        left_node = get_value(start, op_index - 1)
-        right_node = get_value(op_index + 1, end)
-        return BinOpNode(tokens[op_index], left_node, right_node, tokens[op_index].line)
+        error("No comparison operator was found within the condition of an if statement", tokens[start].line)
 
     left_node = get_value(start, com_index - 1)
     right_node = get_value(com_index + 1, end)
     return ComNode(tokens[com_index].value, left_node, right_node, tokens[com_index].line)
 
 
+def get_basic_op_node(start, end):
+    op_index = find_op("OP", ("PLUS", "MINUS"), start, end)
+
+    if not op_index:
+        op_index = find_op("OP", ("MUL", "DIV"), start, end)
+
+    if not op_index:
+        return None
+
+    left_node = get_value(start, op_index - 1)
+    right_node = get_value(op_index + 1, end)
+    return BasicOpNode(tokens[op_index], left_node, right_node, tokens[op_index].line)
+
+
+def get_value(start, end):
+    basic_op = get_basic_op_node(start, end)
+    if not basic_op:
+        if tokens[start].type == "STRING":
+            return parse_string(start, end)
+        elif tokens[start].type == "NUM":
+            return parse_number(start, end)
+        elif tokens[start].type == "NAME":
+            return VarAccessNode(parse_name(start), tokens[start].line)
+        else:
+            error("No value could be parsed", tokens[start].line)
+    return basic_op
+
+
 def return_nodes(start_, end_):
     nodes = []
 
     def create_nodes(start, end):
-        global tok_index
-
         def find_line_break(_start):
             if tokens[_start].type == "BREAK":
                 return _start - 1
@@ -373,17 +394,14 @@ def return_nodes(start_, end_):
                 break_ = find_line_break(start)
                 nodes.append(PrintNode(get_value(start + 1, break_), tokens[start].line))
 
-        elif tokens[start].type == "VAR":
-            if tokens[start + 1].type != "IDE" or tokens[start + 2].type != "ASS":
-                error("You didn't declare a variable correctly", tokens[start].line)
-            break_ = find_line_break(start)
-            nodes.append(VarAssignNode(tokens[start + 1].value, get_value(start + 3, break_), tokens[start].line))
-
-        elif tokens[start].type == "IDE":
-            if tokens[start + 1].type != "ASS":
+        elif tokens[start].type == "NAME":
+            name = parse_name(start)
+            print(name)
+            if tokens[start + len(name)].type != "ASS":
                 error("Unknown Error", tokens[start].line)
             break_ = find_line_break(start)
-            nodes.append(VarAssignNode(tokens[start].value, get_value(start + 2, break_), tokens[start].line))
+            nodes.append(VarAssignNode(name, get_value(start + len(name) + 1, break_), tokens[start].line))
+            # print(nodes[-1])
 
         elif tokens[start].type == "LOOP":
             break_ = find_line_break(start)
@@ -397,7 +415,7 @@ def return_nodes(start_, end_):
             break_ = find_line_break(start)
             end_key = find_end_token(start, "if statement")
 
-            con = get_value(start + 1, break_)
+            con = get_condition(start + 1, break_)
             if type(con).__name__ != "ComNode":
                 error("An if statement must be followed by a condition!", tokens[start].line)
 
@@ -419,8 +437,7 @@ def return_nodes(start_, end_):
                 error("No if statements were found above an else statement", tokens[start].line)
 
             if_node.else_nodes = return_nodes(break_ + 1, end_key - 1)
-            print(if_node.else_nodes)
-            nodes[-index] = if_node
+            nodes[index] = if_node
             break_ = end_key
 
         elif start == 0:
@@ -440,8 +457,6 @@ print(start_nodes)
 #          INTERPRETER
 #####################################
 
-
-# Maybe Context Class?
 
 variables = {}
 
@@ -495,19 +510,30 @@ def traverse_ast(node):
             for node_ in node.child_nodes:
                 traverse_ast(node_)
 
-    elif type_ == "IfNode":
-        op = node.condition.equality_operator
+    elif type_ == "ComNode":
+        op = node.equality_operator
         condition = False
-        left_node = node.condition.left_node
-        right_node = node.condition.right_node
-        if op == "SMA":
-            condition = traverse_ast(left_node) < traverse_ast(right_node)
-        elif op == "BIG":
-            condition = traverse_ast(left_node) > traverse_ast(right_node)
-        elif op == "EQU":
-            condition = traverse_ast(left_node) == traverse_ast(right_node)
+        left = traverse_ast(node.left_node)
+        right = traverse_ast(node.right_node)
+        if type(left) != type(right):
+            error("You can't compare different types", node.line)
+
+        if op == "EQU":
+            condition = left == right
         elif op == "UNEQU":
-            condition = traverse_ast(left_node) != traverse_ast(right_node)
+            condition = left != right
+
+        if type(right) != int or type(left) != int:
+            error("Only numbers can be compared with < or >", node.line)
+
+        if op == "SMA":
+            condition = left < right
+        elif op == "BIG":
+            condition = left > right
+
+        return condition
+    elif type_ == "IfNode":
+        condition = traverse_ast(node.condition)
         if condition:
             for node_ in node.child_nodes:
                 traverse_ast(node_)

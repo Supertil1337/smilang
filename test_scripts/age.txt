@@ -1,8 +1,11 @@
-var alter = :( :) :) :) :)
-IF alter > :( :) :( :( :( :)
-print alter
+;) = :( :) :) :) :)
+;) ;-) = :)) :D :-]
+;) ;) ;) = :)) :D :-]
+IF ;) > :( :) :( :( :( :)
+print ;)
 END
 ELSE
 print :)) :D :-] :^) :D :] =] :] :] :^) =] :-] =] :D =] :-] :] =] :] :^) :] :^) :D
-print alter
+print ;)
+print ;) ;-)
 END
