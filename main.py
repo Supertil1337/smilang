@@ -1,5 +1,6 @@
 import sys
 import subprocess
+from termcolor import colored
 
 # REMOVE LATER
 sys.setrecursionlimit(50)
@@ -146,12 +147,11 @@ class ComNode:
 # maybe add to token for better errors?
 # class Position:
 
-
 def error(message, line):
     if line:
-        print(f"\033[91mERROR\n{message}\nYour code (Line {line}): {code[line - 1]} \033[0m")
+        print(colored(f"ERROR\n{message}\nYour code (Line {line}): {code[line - 1]}", "red", force_color=True))
     else:
-        print(f"\033[91mERROR\n{message}\033[0m")
+        print(colored(f"ERROR\n{message}", "red", force_color=True))
     exit()
 
 
