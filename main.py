@@ -193,14 +193,12 @@ token_dict = {
 #       Lexer
 #############################
 
-# print("\033[91m test \033[0m")
 
-# file = open("test.txt", "r")
-print(sys.argv)
 try:
     file = open(sys.argv[1], "r")
 except OSError:
-    error("Something went wrong while opening", None)
+    error("Something went wrong while trying to read the file", None)
+print(f"Executing {sys.argv[1]}")
 code = file.readlines()
 file.close()
 tokens = []
@@ -243,41 +241,22 @@ print(tokens)
 
 
 def parse_number(start, end):
-    num = []
-    for token in tokens[start:end + 1]:
-        num.append(token.value)
+    num = ""
+    sign = tokens[start].value
+    for token in tokens[start + 1:end + 1]:
+        num += token.value
 
-    # Calculate final number from binary values
-
-    final_number = 0
-    counter = 0
-
-    sign = num[0]
-    del num[0]
-
-    def calc_number():
-        nonlocal final_number
-        nonlocal counter
-
-        if not len(num):
-            return
-        else:
-            if num[-1] == "1":
-                final_number += 2 ** counter
-            elif num[-1] != "0":
-                error("No value could be parsed", tokens[start].line)
-            counter += 1
-            del num[-1]
-            calc_number()
-
-    calc_number()
+    try:
+        num = int(num, 2)
+    except Exception:
+        error("No value could be parsed", tokens[start].line)
 
     if sign == "1":
-        return NumberNode("MINUS", final_number, tokens[start].line)
+        return NumberNode("MINUS", num, tokens[start].line)
     elif sign == "0":
-        return NumberNode("PLUS", final_number, tokens[start].line)
+        return NumberNode("PLUS", num, tokens[start].line)
     else:
-        error("No value could be parsed", tokens[start].line)
+        error("Something went wrong while parsing this line (and I have no idea what did)", tokens[start].line)
 
 
 def parse_string(start, end):
@@ -304,7 +283,6 @@ def parse_string(start, end):
 
     string = ""
     while cur_tok <= end:
-        # print(cur_tok, end)
         string += get_char()
         cur_tok += 2
 
@@ -396,9 +374,10 @@ def return_nodes(start_, end_):
 
         elif tokens[start].type == "NAME":
             name = parse_name(start)
-            print(name)
+
             if tokens[start + len(name)].type != "ASS":
                 error("Unknown Error", tokens[start].line)
+
             break_ = find_line_break(start)
             nodes.append(VarAssignNode(name, get_value(start + len(name) + 1, break_), tokens[start].line))
             # print(nodes[-1])
