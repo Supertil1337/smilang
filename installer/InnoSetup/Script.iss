@@ -34,6 +34,7 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 [Files]
 Source: "C:\Users\tilma\Documents\GitHub\esolang\build\main.exe"; DestDir: {app}
+Source: "C:\Users\tilma\Documents\GitHub\esolang\build\converter.exe"; DestDir: {app}
 Source: "C:\Users\tilma\Documents\GitHub\esolang\installer\register.bat"; DestDir: {app}
 
 ;[Registry]

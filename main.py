@@ -152,6 +152,7 @@ def error(message, line):
         print(colored(f"ERROR\n{message}\nYour code (Line {line}): {code[line - 1]}", "red", force_color=True))
     else:
         print(colored(f"ERROR\n{message}", "red", force_color=True))
+    subprocess.run(["pause"], shell=True)
     exit()
 
 
@@ -196,7 +197,7 @@ token_dict = {
 
 try:
     file = open(sys.argv[1], "r")
-except OSError:
+except (OSError, IndexError):
     error("Something went wrong while trying to read the file", None)
 print(f"Executing {sys.argv[1]}")
 code = file.readlines()

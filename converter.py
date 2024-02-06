@@ -52,3 +52,5 @@ elif t == "Z":
 else:
     print("Bitte gib entweder B oder Z ein!")
     os.system("python converter.py")
+
+os.system("pause")
