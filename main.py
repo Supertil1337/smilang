@@ -2,9 +2,6 @@ import sys
 import subprocess
 from termcolor import colored
 
-# REMOVE LATER
-sys.setrecursionlimit(50)
-
 
 def handler(type, value, tb):
     print("An unknown exception occured while executing the program""\n"
@@ -32,8 +29,6 @@ class BasicOpNode:
         self.left_node = left_node
         self.right_node = right_node
 
-    # def __repr__(self):
-    #    return f"Binary Operation: {self.left_node} {self.token} {self.right_node}"
     def __repr__(self):
         return f"({self.left_node} {self.get_tok_char()} {self.right_node})"
 
@@ -144,9 +139,6 @@ class ComNode:
         return f"{self.left_node} {self.equality_operator} {self.right_node}"
 
 
-# maybe add to token for better errors?
-# class Position:
-
 def error(message, line):
     if line:
         print(colored(f"ERROR\n{message}\nYour code (Line {line}): {code[line - 1]}", "red", force_color=True))
@@ -164,16 +156,16 @@ token_dict = {
     ":-(": ["OP", "MINUS"],
     ":-*": ["OP", "MUL"],
     ":-/": ["OP", "DIV"],
-    "<": ["COM", "SMA"],
-    ">": ["COM", "BIG"],
-    "==": ["COM", "EQU"],
-    "!=": ["COM", "UNEQU"],
-    "=": ["ASS", "EQU"],
-    "print": ["FUNC", "PRINT"],
-    "LOOP": ["LOOP", "START"],
-    "IF": ["IF", "STATEMENT"],
-    "ELSE": ["ELSE", "STATEMENT"],
-    "END": ["END", "END"],
+    ":<": ["COM", "SMA"],
+    ":>": ["COM", "BIG"],
+    ":=)": ["COM", "EQU"],
+    ":=(": ["COM", "UNEQU"],
+    "=)": ["ASS", "EQU"],
+    ":p": ["FUNC", "PRINT"],
+    "8-)": ["LOOP", "START"],
+    "xD": ["IF", "STATEMENT"],
+    "XD": ["ELSE", "STATEMENT"],
+    ";-]": ["END", "END"],
     ":^)": ["STRING", "1"],
     ":-]": ["STRING", "2"],
     "=]": ["STRING", "3"],
@@ -189,6 +181,8 @@ token_dict = {
     ":P": ["NAME", "4"],
     ":-o": ["NAME", "5"]
 }
+
+debug = True
 
 #############################
 #       Lexer
@@ -225,7 +219,6 @@ for tokens_raw in code:
         if token:
             tokens.append(Token(token[0], token[1], line))
         else:
-            # tokens.append(Token("IDE", tok, line))
             error("An error occured while tokenizing this line", line)
 
         del tokens_raw[0]
@@ -233,8 +226,8 @@ for tokens_raw in code:
     tokens.append(Token("BREAK", "BREAK", line))
     line += 1
 
-print(tokens)
-
+if debug:
+    print(tokens)
 
 ################################
 #        PARSER
@@ -261,10 +254,6 @@ def parse_number(start, end):
 
 
 def parse_string(start, end):
-    # ein character besteht aus einem optionalen emoticon dass sagt dass es uppercase ist und dann zwei weiteren
-    # check für uppercase char
-    # dann zwei tokens nehmen und char bestimmen
-
     cur_tok = start
 
     def get_char():
@@ -381,7 +370,6 @@ def return_nodes(start_, end_):
 
             break_ = find_line_break(start)
             nodes.append(VarAssignNode(name, get_value(start + len(name) + 1, break_), tokens[start].line))
-            # print(nodes[-1])
 
         elif tokens[start].type == "LOOP":
             break_ = find_line_break(start)
@@ -421,7 +409,7 @@ def return_nodes(start_, end_):
             break_ = end_key
 
         elif start == 0:
-            error("An expression must contain a function call or an assignment", 0)
+            error("An expression must contain a function call, an assignment, am if statement or a loop", 0)
 
         if break_ != end:
             create_nodes(break_ + 1, end)
@@ -431,7 +419,9 @@ def return_nodes(start_, end_):
 
 
 start_nodes = return_nodes(0, len(tokens) - 1)
-print(start_nodes)
+
+if debug:
+    print(start_nodes)
 
 #####################################
 #          INTERPRETER
@@ -443,7 +433,7 @@ variables = {}
 
 def traverse_ast(node):
     type_ = type(node).__name__
-    if type_ == "BinOpNode":
+    if type_ == "BasicOpNode":
         if type(node.left_node).__name__ == "StringNode" or type(node.right_node).__name__ == "StringNode":
             error("Strings can't  be added to integers or concatenated with other strings", node.line)
         left_value = traverse_ast(node.left_node)
@@ -476,7 +466,7 @@ def traverse_ast(node):
 
     elif type_ == "VarAccessNode":
         if variables.get(node.name) is None:
-            error("Unknown Error, did you spell something wrong?", node.line)
+            error(f"The variable {node.name} could not be found", node.line)
         return variables[node.name]
 
     elif type_ == "PrintNode":
