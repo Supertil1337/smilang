@@ -182,7 +182,7 @@ token_dict = {
     ":-o": ["NAME", "5"]
 }
 
-debug = True
+debug = False
 
 #############################
 #       Lexer
