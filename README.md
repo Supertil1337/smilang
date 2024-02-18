@@ -23,7 +23,8 @@ Die Programmiersprache hat nur die bekannten Datentypen Integer und String.
 #### Integer
 Ganze Zahlen können im Binärsystem dargestellt werden. Dabei steht `:)` für 1 und `:(` für 0. Das erste Bit steht für das Vorzeichen.  
 _**Beispiel für die Zahl 18**_:  
-`:( :) :( :( :) :(`
+`:( :) :( :( :) :(`  
+_Hinweis_: Wenn der Quotient einer Division keine ganze Zahl ist, wird er abgerundet.
 #### String
 Ein String kann nur ASCII-Buchstaben enthalten.  
 Jeder Buchstabe wird mit einem oder mehreren Emoticons dargestellt:  
@@ -81,6 +82,12 @@ Eine Schleife schreibt man wie folgt:
 Um Werte in der Konsole auszugeben, schreibt man `:p [Wert]`.  
 **Beispiel**:  
 `:p :)) :-] =] :-] :]`
+
+### Kommentare
+Auch wenn das vielleicht die Ästhetik der Emoticons stört, ist es trotzdem möglich `://` zu schreiben, woraufhin der Rest der Zeile ignoriert wird.
+
+## Errors
+Die Programmiersprache erkennt selber Fehler, beispielsweise in der Syntax. Beim Auftreten eines Fehlers wird man auf diesen hingewiesen und erhält außerdem die Code-Zeile, in der er auftrat.
 
 ## Beispielskript
 ### Berechnung der ersten zehn Fibonacci-Zahlen:

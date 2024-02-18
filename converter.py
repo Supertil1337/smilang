@@ -6,13 +6,13 @@ emoticons = [":^) ", ":-] ", "=] ", ":] ", ":D "]
 
 t = input("Möchtest du Buchstaben (B) oder Zahlen (Z) konvertieren?\n")
 
-if t == "B":
+if t.lower() == "b":
     text = input("Gib die Buchstaben, die du konvertieren möchtest nun ein.\n")
     chars = list(text)
     output = ""
     for char in chars:
         if char.lower() not in string.ascii_lowercase:
-            print("Es sind nur ASCII Zeichen erlaubt")
+            print("Es sind nur ASCII Buchstaben erlaubt")
             break
         if char.isupper():
             output += ":)) "
@@ -29,7 +29,7 @@ if t == "B":
 
     print(output)
 
-elif t == "Z":
+elif t.lower() == "z":
     zahl = input("Gib nun die Zahl, die du konvertieren möchtest ein\n")
     try:
         zahl = int(zahl)

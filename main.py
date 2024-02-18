@@ -1,6 +1,7 @@
 import sys
 import subprocess
 from termcolor import colored
+from math import floor
 
 
 def handler(type, value, tb):
@@ -179,7 +180,8 @@ token_dict = {
     ";-)": ["NAME", "2"],
     ";D": ["NAME", "3"],
     ":P": ["NAME", "4"],
-    ":-o": ["NAME", "5"]
+    ":-o": ["NAME", "5"],
+    "://": ["COMM", "COMM"]
 }
 
 debug = False
@@ -217,6 +219,8 @@ for tokens_raw in code:
 
         token = token_dict.get(tok)
         if token:
+            if token[0] == "COMM":
+                break
             tokens.append(Token(token[0], token[1], line))
         else:
             error("An error occured while tokenizing this line", line)
@@ -448,11 +452,16 @@ def traverse_ast(node):
         elif op == "DIV":
             if right_value == 0:
                 error("Division by Zero", node.line)
-            return left_value / right_value
+
+            s = left_value / right_value
+            if type(s) != int:
+                s = floor(s)
+
+            return s
 
     elif type_ == "NumberNode":
         number = node.value
-        if node.value == "MINUS":
+        if node.sign == "MINUS":
             number *= -1
 
         return number
@@ -507,7 +516,8 @@ def traverse_ast(node):
         if condition:
             for node_ in node.child_nodes:
                 traverse_ast(node_)
-        else:
+
+        elif node.else_nodes:
             for node_ in node.else_nodes:
                 traverse_ast(node_)
 
